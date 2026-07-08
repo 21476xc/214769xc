@@ -32,10 +32,10 @@ bash ./install.sh --skip-install
 
 ### Android Termux
 
-请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。下面这条命令会尽量使用非交互模式安装依赖；如果系统仍询问是否覆盖配置文件，直接按回车保留默认选项即可。
+请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。下面这条命令会先完整升级 Termux 包，避免 curl/libcurl 半升级；如果系统仍询问是否覆盖配置文件，直接按回车保留默认选项即可。
 
 ```bash
-apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl ca-certificates && curl --fail --location --show-error --retry 3 --connect-timeout 15 https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh -o install.sh && bash install.sh
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl ca-certificates && (curl --fail --location --show-error --retry 3 --connect-timeout 15 https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh -o install.sh || curl --fail --location --show-error --retry 3 --connect-timeout 15 https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o install.sh) && bash install.sh
 ```
 
 如果要从手机存储导入角色或备份，可以在安装后运行：
@@ -46,7 +46,7 @@ termux-setup-storage
 
 ## 数字控制台
 
-一键安装完成后会自动进入数字控制台；以后想再次打开控制台，再输入：
+一键安装完成后会自动进入数字控制台；以后每次打开 Termux 也会自动进入菜单。想手动打开控制台，也可以输入：
 
 ```bash
 jiuguan
@@ -61,6 +61,7 @@ Termux/macOS/Linux 想清空后重新测试：
 ```bash
 jiuguan uninstall --delete-data 2>/dev/null || true
 rm -rf "$HOME/214769SillyTavern" "$PREFIX/bin/jiuguan" install.sh
+sed -i '/# 214769SillyTavern auto menu begin/,/# 214769SillyTavern auto menu end/d' "$HOME/.bashrc" 2>/dev/null || true
 hash -r 2>/dev/null || true
 ```
 

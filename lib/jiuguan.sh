@@ -494,6 +494,42 @@ jg_restore() {
     jg_success "已恢复备份：$backup_path"
 }
 
+
+jg_raw_base_candidates() {
+    local preferred="${1:-}"
+    local default_base="https://raw.githubusercontent.com/21476xc/214769xc/main"
+    local emitted=" " base
+    for base in "$preferred" "$default_base" "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main" "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"; do
+        [[ -n "$base" ]] || continue
+        case "$emitted" in
+            *" $base "*) continue ;;
+        esac
+        printf '%s\n' "$base"
+        emitted="$emitted$base "
+    done
+}
+
+jg_download_tool_file() {
+    local relative="$1"
+    local destination="$2"
+    local preferred="${3:-}"
+    local base url
+    JG_SELECTED_RAW_BASE=""
+
+    while IFS= read -r base; do
+        [[ -n "$base" ]] || continue
+        url="$base/$relative"
+        jg_info "下载 $url"
+        if curl --fail --location --show-error --retry 3 --connect-timeout 15 "$url" -o "$destination"; then
+            JG_SELECTED_RAW_BASE="$base"
+            return 0
+        fi
+        jg_warn "下载失败，尝试备用源。"
+    done < <(jg_raw_base_candidates "$preferred")
+
+    return 1
+}
+
 jg_update_tool() {
     jg_init_dirs
     local raw_base="${JIUGUAN_RAW_BASE_URL:-}"
@@ -511,9 +547,13 @@ jg_update_tool() {
         destination="$JG_TOOL/$relative"
         temp="$destination.tmp"
         jg_info "更新工具文件：$relative"
-        curl --fail --location --show-error --retry 3 --connect-timeout 15 "$raw_base/$relative" -o "$temp" || jg_die "下载 $relative 失败。请检查网络后重试。"
+        jg_download_tool_file "$relative" "$temp" "$raw_base" || jg_die "下载 $relative 失败。请检查网络后重试。"
+        if [[ -n "$JG_SELECTED_RAW_BASE" ]]; then
+            raw_base="$JG_SELECTED_RAW_BASE"
+        fi
         mv "$temp" "$destination"
     done
+    printf '%s\n' "$raw_base" > "$JG_RAW_BASE_FILE"
     chmod +x "$JG_BIN/jiuguan.sh"
     jg_success "工具自身更新完成。"
 }
@@ -566,6 +606,13 @@ jg_shim_path() {
     fi
 }
 
+
+jg_remove_termux_auto_menu() {
+    local bashrc="$HOME/.bashrc"
+    [[ -f "$bashrc" ]] || return 0
+    sed -i '/# 214769SillyTavern auto menu begin/,/# 214769SillyTavern auto menu end/d' "$bashrc" 2>/dev/null || true
+}
+
 jg_uninstall() {
     local delete_data="${1:-0}"
     jg_load_paths
@@ -574,6 +621,9 @@ jg_uninstall() {
     local shim
     shim="$(jg_shim_path)"
     rm -f -- "$shim"
+    if jg_is_termux; then
+        jg_remove_termux_auto_menu
+    fi
 
     if [[ "$delete_data" == "1" ]]; then
         for path in "$JG_ST" "$JG_BACKUPS" "$JG_LOG_DIR" "$JG_STATE" "$JG_TOOL"; do
@@ -588,6 +638,22 @@ jg_uninstall() {
     jg_warn "如果当前窗口仍能找到 jiuguan，请重新打开终端；PATH 会在新窗口里刷新。"
 }
 
+
+jg_menu_action() {
+    local status
+    set +e
+    (
+        set -e
+        "$@"
+    )
+    status=$?
+    set -e
+    if [[ "$status" -ne 0 ]]; then
+        jg_warn "操作没有完成，请查看上面的提示后重试。"
+    fi
+    return 0
+}
+
 jg_data_menu() {
     while true; do
         printf '\n用户数据\n'
@@ -599,8 +665,8 @@ jg_data_menu() {
         IFS= read -r choice || return 0
 
         case "$choice" in
-            1) jg_backup >/dev/null ;;
-            2) jg_restore ;;
+            1) jg_menu_action jg_backup >/dev/null ;;
+            2) jg_menu_action jg_restore ;;
             0) return 0 ;;
             *) jg_warn "请输入 0 到 2 之间的数字。" ;;
         esac
@@ -662,13 +728,13 @@ jg_menu() {
         IFS= read -r choice || return 0
 
         case "$choice" in
-            1) jg_install ;;
-            2) jg_start ;;
-            3) jg_stop ;;
-            4) jg_restart ;;
-            5) jg_status ;;
-            6) jg_logs 120 ;;
-            7) jg_update ;;
+            1) jg_menu_action jg_install ;;
+            2) jg_menu_action jg_start ;;
+            3) jg_menu_action jg_stop ;;
+            4) jg_menu_action jg_restart ;;
+            5) jg_menu_action jg_status ;;
+            6) jg_menu_action jg_logs 120 ;;
+            7) jg_menu_action jg_update ;;
             8) jg_data_menu ;;
             9) if jg_uninstall_menu; then return 0; fi ;;
             0) return 0 ;;
