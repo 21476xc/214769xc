@@ -102,6 +102,21 @@ is_termux() {
     [[ -n "${TERMUX_VERSION:-}" ]] || [[ -d "/data/data/com.termux/files/usr" ]]
 }
 
+termux_prepare_packages() {
+    if ! is_termux; then
+        return
+    fi
+
+    install_info "准备 Termux 基础环境。"
+    env DEBIAN_FRONTEND=noninteractive apt-get update
+    env DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y \
+        -o Dpkg::Options::="--force-confdef" \
+        -o Dpkg::Options::="--force-confold"
+    env DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        -o Dpkg::Options::="--force-confdef" \
+        -o Dpkg::Options::="--force-confold" \
+        curl ca-certificates
+}
 install_termux_auto_menu() {
     if ! is_termux; then
         return
@@ -135,6 +150,8 @@ TOOL_ROOT="$INSTALL_ROOT/.jiuguan-tool"
 BIN_DIR="$TOOL_ROOT/bin"
 LIB_DIR="$TOOL_ROOT/lib"
 mkdir -p "$BIN_DIR" "$LIB_DIR"
+
+termux_prepare_packages
 
 copy_or_download "bin/jiuguan.sh" "$BIN_DIR/jiuguan.sh"
 copy_or_download "lib/jiuguan.sh" "$LIB_DIR/jiuguan.sh"

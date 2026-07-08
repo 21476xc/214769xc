@@ -21,7 +21,7 @@ irm https://raw.githubusercontent.com/21476xc/214769xc/main/install.ps1 | iex
 ### macOS / Linux
 
 ```bash
-curl --fail --location --show-error --retry 3 --connect-timeout 15 https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh -o install.sh && bash install.sh
+curl -L https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
 ```
 
 本地开发时可以先只安装管理命令：
@@ -32,10 +32,16 @@ bash ./install.sh --skip-install
 
 ### Android Termux
 
-请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。下面这条命令会先完整升级 Termux 包，避免 curl/libcurl 半升级；如果系统仍询问是否覆盖配置文件，直接按回车保留默认选项即可。
+请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。安装脚本会自动准备 Termux 基础环境；如果系统询问是否覆盖配置文件，直接按回车保留默认选项即可。
 
 ```bash
-apt-get update && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl ca-certificates && (curl --fail --location --show-error --retry 3 --connect-timeout 15 https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh -o install.sh || curl --fail --location --show-error --retry 3 --connect-timeout 15 https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o install.sh) && bash install.sh
+pkg install -y curl && curl -L https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
+```
+
+如果短命令提示 `curl` 损坏或无法启动，先运行这条修复 Termux 包环境，再重新执行短命令：
+
+```bash
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 ```
 
 如果要从手机存储导入角色或备份，可以在安装后运行：
