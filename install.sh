@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-RAW_BASE_URL="${JIUGUAN_RAW_BASE_URL:-https://raw.githubusercontent.com/your-name/jiuguan/main}"
+RAW_BASE_URL="${JIUGUAN_RAW_BASE_URL:-https://raw.githubusercontent.com/21476xc/214769xc/main}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_INSTALLER="$SCRIPT_DIR/scripts/install.sh"
 

@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 RAW_BASE_URL="${JIUGUAN_RAW_BASE_URL:-}"
-INSTALL_ROOT="${JIUGUAN_HOME:-$HOME/jiuguan}"
+INSTALL_ROOT="${JIUGUAN_HOME:-$HOME/214769SillyTavern}"
 SKIP_INSTALL=0
 
 while [[ $# -gt 0 ]]; do
@@ -27,7 +27,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$RAW_BASE_URL" ]]; then
-    RAW_BASE_URL="https://raw.githubusercontent.com/your-name/jiuguan/main"
+    RAW_BASE_URL="https://raw.githubusercontent.com/21476xc/214769xc/main"
 fi
 
 install_info() { printf '[信息] %s\n' "$*"; }
@@ -98,7 +98,7 @@ if [[ ":$PATH:" != *":$SHIM_DIR:"* ]]; then
     install_info "已把 $SHIM_DIR 加入 PATH。新开的终端会自动生效。"
 fi
 
-install_success "酒馆管理命令已安装：$SHIM_PATH"
+install_success "214769SillyTavern 管理命令已安装：$SHIM_PATH"
 
 if [[ "$SKIP_INSTALL" -ne 1 ]]; then
     install_info "开始安装或修复 SillyTavern。"

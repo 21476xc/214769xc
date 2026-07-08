@@ -8,11 +8,11 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $InstallRoot) {
-    $InstallRoot = Join-Path $HOME "jiuguan"
+    $InstallRoot = Join-Path $HOME "214769SillyTavern"
 }
 
 if (-not $RawBaseUrl) {
-    $RawBaseUrl = "https://raw.githubusercontent.com/your-name/jiuguan/main"
+    $RawBaseUrl = "https://raw.githubusercontent.com/21476xc/214769xc/main"
 }
 
 function Write-InstallInfo {
@@ -79,7 +79,7 @@ if ($pathParts -notcontains $InstallRoot) {
     Write-InstallInfo "已把 $InstallRoot 加入用户 PATH。新开的终端会自动生效。"
 }
 
-Write-InstallSuccess "酒馆管理命令已安装：$shimPath"
+Write-InstallSuccess "214769SillyTavern 管理命令已安装：$shimPath"
 
 if (-not $SkipInstall) {
     Write-InstallInfo "开始安装或修复 SillyTavern。"

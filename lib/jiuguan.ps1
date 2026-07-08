@@ -28,7 +28,7 @@ function Get-JgRoot {
         return [System.IO.Path]::GetFullPath($env:JIUGUAN_HOME)
     }
 
-    return (Join-Path $HOME "jiuguan")
+    return (Join-Path $HOME "214769SillyTavern")
 }
 
 function Get-JgPaths {
@@ -342,7 +342,7 @@ function Show-JgStatus {
     $paths = Get-JgPaths
     $running = Get-JgRunningProcess
 
-    Write-Host "酒馆部署工具：v$script:JiuguanVersion"
+    Write-Host "214769SillyTavern：v$script:JiuguanVersion"
     Write-Host "安装目录：$($paths.Root)"
 
     if (Test-JgCommand "node") {
@@ -477,7 +477,7 @@ function Update-JgTool {
         $rawBase = (Get-Content -LiteralPath $paths.RawBaseFile -Raw).Trim()
     }
 
-    if (-not $rawBase -or $rawBase -like "*your-name/jiuguan*") {
+    if (-not $rawBase) {
         Write-JgInfo "没有配置远程工具地址，跳过工具自身更新。"
         return
     }
@@ -573,7 +573,7 @@ function Uninstall-JgDeployment {
 
 function Show-JgHelp {
     Write-Host @"
-酒馆一键部署工具 v$script:JiuguanVersion
+214769SillyTavern v$script:JiuguanVersion
 
 用法：
   jiuguan install              安装或修复依赖和 SillyTavern
@@ -589,7 +589,7 @@ function Show-JgHelp {
   jiuguan uninstall --delete-data  卸载并删除本地数据
 
 常用环境变量：
-  JIUGUAN_HOME                 自定义安装目录，默认：$HOME\jiuguan
+  JIUGUAN_HOME                 自定义安装目录，默认：$HOME\214769SillyTavern
   JIUGUAN_NPM_REGISTRY         自定义 npm registry
   JIUGUAN_SILLYTAVERN_REPO     自定义 SillyTavern Git 仓库或镜像
 "@

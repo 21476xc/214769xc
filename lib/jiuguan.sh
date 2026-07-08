@@ -12,7 +12,7 @@ jg_warn() { printf '[提醒] %s\n' "$*"; }
 jg_die() { printf '[错误] %s\n' "$*" >&2; exit 1; }
 
 jg_load_paths() {
-    JG_ROOT="${JIUGUAN_HOME:-$HOME/jiuguan}"
+    JG_ROOT="${JIUGUAN_HOME:-$HOME/214769SillyTavern}"
     JG_TOOL="$JG_ROOT/.jiuguan-tool"
     JG_BIN="$JG_TOOL/bin"
     JG_LIB="$JG_TOOL/lib"
@@ -322,7 +322,7 @@ jg_lan_addresses() {
 
 jg_status() {
     jg_load_paths
-    printf '酒馆部署工具：v%s\n' "$JIUGUAN_VERSION"
+    printf '214769SillyTavern：v%s\n' "$JIUGUAN_VERSION"
     printf '安装目录：%s\n' "$JG_ROOT"
 
     if jg_command_exists node; then
@@ -436,7 +436,7 @@ jg_update_tool() {
         raw_base="$(tr -d '\r\n' < "$JG_RAW_BASE_FILE")"
     fi
 
-    if [[ -z "$raw_base" || "$raw_base" == *"your-name/jiuguan"* ]]; then
+    if [[ -z "$raw_base" ]]; then
         jg_info "没有配置远程工具地址，跳过工具自身更新。"
         return
     fi
@@ -525,7 +525,7 @@ jg_uninstall() {
 
 jg_help() {
     cat <<EOF
-酒馆一键部署工具 v$JIUGUAN_VERSION
+214769SillyTavern v$JIUGUAN_VERSION
 
 用法：
   jiuguan install              安装或修复依赖和 SillyTavern
@@ -541,7 +541,7 @@ jg_help() {
   jiuguan uninstall --delete-data  卸载并删除本地数据
 
 常用环境变量：
-  JIUGUAN_HOME                 自定义安装目录，默认：$HOME/jiuguan
+  JIUGUAN_HOME                 自定义安装目录，默认：$HOME/214769SillyTavern
   JIUGUAN_NPM_REGISTRY         自定义 npm registry
   JIUGUAN_SILLYTAVERN_REPO     自定义 SillyTavern Git 仓库或镜像
 EOF

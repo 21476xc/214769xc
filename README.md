@@ -1,15 +1,15 @@
-﻿# 酒馆一键部署工具
+﻿# 214769SillyTavern
 
-这是一个面向中文小白用户的 SillyTavern 一键部署和维护工具。用户复制一条命令即可安装，之后用 `jiuguan` 管理启动、更新、日志、备份、恢复和卸载。
+214769SillyTavern 是一个面向中文小白用户的 SillyTavern 一键部署和维护工具。用户复制一条命令即可安装，之后用 `jiuguan` 管理启动、更新、日志、备份、恢复和卸载。
 
-> 目前项目里的 `your-name/jiuguan` 是发布占位地址。把仓库上传到 GitHub 后，请把文档和脚本中的 `https://raw.githubusercontent.com/your-name/jiuguan/main` 替换成你的真实 Raw 地址。
+> 当前发布 Raw 地址：`https://raw.githubusercontent.com/21476xc/214769xc/main`。
 
 ## 一键安装
 
 ### Windows 10/11 PowerShell
 
 ```powershell
-irm https://raw.githubusercontent.com/your-name/jiuguan/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/21476xc/214769xc/main/install.ps1 | iex
 ```
 
 本地开发时可以先只安装管理命令，不拉取 SillyTavern：
@@ -21,7 +21,7 @@ irm https://raw.githubusercontent.com/your-name/jiuguan/main/install.ps1 | iex
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-name/jiuguan/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh | bash
 ```
 
 本地开发时可以先只安装管理命令：
@@ -36,7 +36,7 @@ bash ./install.sh --skip-install
 
 ```bash
 pkg update -y && pkg install -y curl
-curl -fsSL https://raw.githubusercontent.com/your-name/jiuguan/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh | bash
 ```
 
 如果要从手机存储导入角色或备份，可以在安装后运行：
@@ -101,8 +101,8 @@ http://192.168.1.23:8000
 
 | 平台 | 默认目录 |
 | --- | --- |
-| Windows | `%USERPROFILE%\jiuguan` |
-| macOS/Linux/Termux | `$HOME/jiuguan` |
+| Windows | `%USERPROFILE%\214769SillyTavern` |
+| macOS/Linux/Termux | `$HOME/214769SillyTavern` |
 
 可以通过环境变量改安装目录。
 
@@ -110,13 +110,13 @@ Windows PowerShell：
 
 ```powershell
 $env:JIUGUAN_HOME = "D:\SillyTavernBox"
-irm https://raw.githubusercontent.com/your-name/jiuguan/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/21476xc/214769xc/main/install.ps1 | iex
 ```
 
 macOS/Linux/Termux：
 
 ```bash
-JIUGUAN_HOME="$HOME/SillyTavernBox" bash <(curl -fsSL https://raw.githubusercontent.com/your-name/jiuguan/main/install.sh)
+JIUGUAN_HOME="$HOME/SillyTavernBox" bash <(curl -fsSL https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh)
 ```
 
 ## 网络和镜像
@@ -165,8 +165,8 @@ jiuguan install
 
 | 平台 | 备份格式 |
 | --- | --- |
-| Windows | `%USERPROFILE%\jiuguan\backups\sillytavern-时间.zip` |
-| macOS/Linux/Termux | `$HOME/jiuguan/backups/sillytavern-时间.tar.gz` |
+| Windows | `%USERPROFILE%\214769SillyTavern\backups\sillytavern-时间.zip` |
+| macOS/Linux/Termux | `$HOME/214769SillyTavern/backups/sillytavern-时间.tar.gz` |
 
 ## 常见问题
 
@@ -233,5 +233,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\validate.ps1
 
 发布前需要做两件事：
 
-1. 将 `your-name/jiuguan` 替换为真实 GitHub 仓库路径。
+1. 确认 GitHub 仓库地址为 `https://github.com/21476xc/214769xc`。
 2. 在 Windows、macOS/Linux 和 Termux 上分别验证一次 `install`、`start`、`status`、`backup`、`update`、`stop`、`uninstall`。
