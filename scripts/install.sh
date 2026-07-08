@@ -106,6 +106,8 @@ if [[ "$SKIP_INSTALL" -ne 1 ]]; then
     install_info "启动 SillyTavern 并显示访问地址。"
     "$BIN_DIR/jiuguan.sh" start
     "$BIN_DIR/jiuguan.sh" status
+    install_info "进入数字控制台。"
+    "$BIN_DIR/jiuguan.sh" menu
 fi
 
-install_success "全部完成。以后直接运行 jiuguan 可打开数字控制台。"
+install_success "全部完成。以后直接运行 jiuguan 也可以再次打开数字控制台。"

@@ -91,6 +91,9 @@ if (-not $SkipInstall) {
     Write-InstallInfo "启动 SillyTavern 并显示访问地址。"
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $cliPath start
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $cliPath status
+
+    Write-InstallInfo "进入数字控制台。"
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $cliPath menu
 }
 
-Write-InstallSuccess "全部完成。以后直接运行 jiuguan 可打开数字控制台。"
+Write-InstallSuccess "全部完成。以后直接运行 jiuguan 也可以再次打开数字控制台。"

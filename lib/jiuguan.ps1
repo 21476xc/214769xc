@@ -571,6 +571,73 @@ function Uninstall-JgDeployment {
     Write-JgWarn "如果当前窗口仍能找到 jiuguan，请重新打开终端；PATH 会在新窗口里刷新。"
 }
 
+function Show-JgDataMenu {
+    while ($true) {
+        Write-Host ""
+        Write-Host "用户数据"
+        Write-Host "----------------------------"
+        Write-Host "1. 备份用户数据"
+        Write-Host "2. 恢复最新备份"
+        Write-Host "0. 返回主菜单"
+        $choice = Read-Host "请输入数字"
+
+        try {
+            switch ($choice) {
+                "1" { New-JgBackup | Out-Null }
+                "2" { Restore-JgBackup }
+                "0" { return }
+                default { Write-JgWarn "请输入 0 到 2 之间的数字。" }
+            }
+        }
+        catch {
+            Write-JgError $_.Exception.Message
+        }
+
+        if ($choice -ne "0") {
+            Write-Host ""
+            Read-Host "按回车返回" | Out-Null
+        }
+    }
+}
+
+function Invoke-JgUninstallMenu {
+    while ($true) {
+        Write-Host ""
+        Write-Host "卸载"
+        Write-Host "----------------------------"
+        Write-Host "1. 卸载管理工具，保留 SillyTavern 和备份"
+        Write-Host "2. 卸载并删除全部本地数据"
+        Write-Host "0. 返回主菜单"
+        $choice = Read-Host "请输入数字"
+
+        try {
+            switch ($choice) {
+                "1" {
+                    Uninstall-JgDeployment
+                    return $true
+                }
+                "2" {
+                    Write-JgWarn "这会删除 SillyTavern、本地数据、日志和备份。"
+                    $confirm = Read-Host "确认删除请输入 DELETE"
+                    if ($confirm -eq "DELETE") {
+                        Uninstall-JgDeployment -DeleteData
+                        return $true
+                    }
+
+                    Write-JgWarn "未输入 DELETE，已取消删除。"
+                    return $false
+                }
+                "0" { return $false }
+                default { Write-JgWarn "请输入 0 到 2 之间的数字。" }
+            }
+        }
+        catch {
+            Write-JgError $_.Exception.Message
+            return $false
+        }
+    }
+}
+
 function Show-JgMenu {
     while ($true) {
         Write-Host ""
@@ -583,11 +650,9 @@ function Show-JgMenu {
         Write-Host "5. 查看状态和访问地址"
         Write-Host "6. 查看最近日志"
         Write-Host "7. 更新工具和 SillyTavern"
-        Write-Host "8. 备份用户数据"
-        Write-Host "9. 恢复最新备份"
+        Write-Host "8. 备份/恢复用户数据"
+        Write-Host "9. 卸载"
         Write-Host "0. 退出"
-        Write-Host ""
-        Write-Host "卸载请使用：jiuguan uninstall；删除全部数据请使用：jiuguan uninstall --delete-data"
         $choice = Read-Host "请输入数字"
 
         try {
@@ -599,8 +664,12 @@ function Show-JgMenu {
                 "5" { Show-JgStatus }
                 "6" { Show-JgLogs -Lines 120 }
                 "7" { Update-JgDeployment }
-                "8" { New-JgBackup | Out-Null }
-                "9" { Restore-JgBackup }
+                "8" { Show-JgDataMenu }
+                "9" {
+                    if (Invoke-JgUninstallMenu) {
+                        return
+                    }
+                }
                 "0" { return }
                 default { Write-JgWarn "请输入 0 到 9 之间的数字。" }
             }
@@ -619,7 +688,7 @@ function Show-JgHelp {
     Write-Host @"
 214769SillyTavern v$script:JiuguanVersion
 
-直接运行 jiuguan 会打开数字控制台。
+安装完成后会自动进入数字控制台；以后直接运行 jiuguan 也可以再次打开。
 
 用法：
   jiuguan install              安装或修复依赖和 SillyTavern

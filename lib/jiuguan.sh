@@ -542,6 +542,62 @@ jg_uninstall() {
     jg_warn "如果当前窗口仍能找到 jiuguan，请重新打开终端；PATH 会在新窗口里刷新。"
 }
 
+jg_data_menu() {
+    while true; do
+        printf '\n用户数据\n'
+        printf '%s\n' '----------------------------'
+        printf '1. 备份用户数据\n'
+        printf '2. 恢复最新备份\n'
+        printf '0. 返回主菜单\n'
+        printf '请输入数字：'
+        IFS= read -r choice || return 0
+
+        case "$choice" in
+            1) jg_backup >/dev/null ;;
+            2) jg_restore ;;
+            0) return 0 ;;
+            *) jg_warn "请输入 0 到 2 之间的数字。" ;;
+        esac
+
+        if [[ "$choice" != "0" ]]; then
+            printf '\n按回车返回'
+            IFS= read -r _ || return 0
+        fi
+    done
+}
+
+jg_uninstall_menu() {
+    while true; do
+        printf '\n卸载\n'
+        printf '%s\n' '----------------------------'
+        printf '1. 卸载管理工具，保留 SillyTavern 和备份\n'
+        printf '2. 卸载并删除全部本地数据\n'
+        printf '0. 返回主菜单\n'
+        printf '请输入数字：'
+        IFS= read -r choice || return 1
+
+        case "$choice" in
+            1)
+                jg_uninstall 0
+                return 0
+                ;;
+            2)
+                jg_warn "这会删除 SillyTavern、本地数据、日志和备份。"
+                printf '确认删除请输入 DELETE：'
+                IFS= read -r confirm || return 1
+                if [[ "$confirm" == "DELETE" ]]; then
+                    jg_uninstall 1
+                    return 0
+                fi
+                jg_warn "未输入 DELETE，已取消删除。"
+                return 1
+                ;;
+            0) return 1 ;;
+            *) jg_warn "请输入 0 到 2 之间的数字。" ;;
+        esac
+    done
+}
+
 jg_menu() {
     while true; do
         printf '\n214769SillyTavern 控制台 v%s\n' "$JIUGUAN_VERSION"
@@ -553,10 +609,9 @@ jg_menu() {
         printf '5. 查看状态和访问地址\n'
         printf '6. 查看最近日志\n'
         printf '7. 更新工具和 SillyTavern\n'
-        printf '8. 备份用户数据\n'
-        printf '9. 恢复最新备份\n'
-        printf '0. 退出\n\n'
-        printf '卸载请使用：jiuguan uninstall；删除全部数据请使用：jiuguan uninstall --delete-data\n'
+        printf '8. 备份/恢复用户数据\n'
+        printf '9. 卸载\n'
+        printf '0. 退出\n'
         printf '请输入数字：'
         IFS= read -r choice || return 0
 
@@ -568,8 +623,8 @@ jg_menu() {
             5) jg_status ;;
             6) jg_logs 120 ;;
             7) jg_update ;;
-            8) jg_backup >/dev/null ;;
-            9) jg_restore ;;
+            8) jg_data_menu ;;
+            9) if jg_uninstall_menu; then return 0; fi ;;
             0) return 0 ;;
             *) jg_warn "请输入 0 到 9 之间的数字。" ;;
         esac
@@ -584,7 +639,7 @@ jg_help() {
     cat <<EOF
 214769SillyTavern v$JIUGUAN_VERSION
 
-直接运行 jiuguan 会打开数字控制台。
+安装完成后会自动进入数字控制台；以后直接运行 jiuguan 也可以再次打开。
 
 用法：
   jiuguan install              安装或修复依赖和 SillyTavern
