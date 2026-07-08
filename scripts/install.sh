@@ -102,10 +102,14 @@ install_success "214769SillyTavern 管理命令已安装：$SHIM_PATH"
 
 if [[ "$SKIP_INSTALL" -ne 1 ]]; then
     install_info "开始安装或修复 SillyTavern。"
-    "$BIN_DIR/jiuguan.sh" install
-    install_info "启动 SillyTavern 并显示访问地址。"
-    "$BIN_DIR/jiuguan.sh" start
-    "$BIN_DIR/jiuguan.sh" status
+    if "$BIN_DIR/jiuguan.sh" install; then
+        install_info "启动 SillyTavern 并显示访问地址。"
+        "$BIN_DIR/jiuguan.sh" start || true
+        "$BIN_DIR/jiuguan.sh" status || true
+    else
+        install_info "安装没有完成。下面进入数字控制台，你可以按 1 重试，或按 9 卸载。"
+    fi
+
     install_info "进入数字控制台。"
     "$BIN_DIR/jiuguan.sh" menu
 fi

@@ -107,26 +107,69 @@ jg_install_debian_deps() {
     return 0
 }
 
-jg_node_major() {
+jg_node_version() {
     if ! jg_command_exists node; then
-        echo 0
-        return
+        return 127
     fi
 
-    node --version 2>/dev/null | sed 's/^v//' | awk -F. '{print $1}'
+    local output status
+    set +e
+    output="$(node --version 2>&1)"
+    status=$?
+    set -e
+
+    if [[ "$status" -ne 0 ]]; then
+        printf '%s\n' "$output" >&2
+        return "$status"
+    fi
+
+    printf '%s\n' "$output"
+}
+
+jg_node_major() {
+    local version
+    if ! version="$(jg_node_version)"; then
+        echo 0
+        return 1
+    fi
+
+    printf '%s\n' "$version" | sed 's/^v//' | awk -F. '{print $1}'
 }
 
 jg_ensure_node18() {
-    local major
+    local major node_status
+    set +e
     major="$(jg_node_major)"
-    if [[ "$major" =~ ^[0-9]+$ ]] && [[ "$major" -ge 18 ]]; then
+    node_status=$?
+    set -e
+
+    if [[ "$node_status" -eq 0 && "$major" =~ ^[0-9]+$ && "$major" -ge 18 ]]; then
         return
     fi
 
     if jg_is_termux; then
-        jg_warn "当前 Node.js 版本较旧，尝试通过 Termux apt 更新。"
-        jg_apt_install nodejs || jg_die "Node.js 更新失败。请运行 apt update && apt install nodejs 后重试。"
-        return
+        if [[ "$node_status" -ne 0 ]]; then
+            jg_warn "当前 Termux 的 Node.js 无法运行，尝试重装 nodejs。"
+        else
+            jg_warn "当前 Node.js 版本较旧，尝试通过 Termux apt 更新。"
+        fi
+
+        jg_apt_install nodejs || jg_die "Node.js 安装失败。请运行 apt update && apt install nodejs 后重试。"
+
+        set +e
+        major="$(jg_node_major)"
+        node_status=$?
+        set -e
+
+        if [[ "$node_status" -ne 0 ]]; then
+            jg_die "Node.js 在当前 Termux 环境中安装成功但无法运行。MuMu 模拟器可能不兼容当前 Termux nodejs 包；建议换 F-Droid Termux 真机测试，或在 Termux 中尝试：pkg install nodejs-lts"
+        fi
+
+        if [[ "$major" =~ ^[0-9]+$ && "$major" -ge 18 ]]; then
+            return
+        fi
+
+        jg_die "Node.js 版本仍过旧。请运行 apt update && apt install nodejs 后重试。"
     fi
 
     if jg_is_macos; then
@@ -344,8 +387,11 @@ jg_status() {
     printf '214769SillyTavern：v%s\n' "$JIUGUAN_VERSION"
     printf '安装目录：%s\n' "$JG_ROOT"
 
-    if jg_command_exists node; then
-        printf 'Node.js：%s\n' "$(node --version)"
+    local node_version
+    if node_version="$(jg_node_version 2>/dev/null)"; then
+        printf 'Node.js：%s\n' "$node_version"
+    elif jg_command_exists node; then
+        printf 'Node.js：已安装但无法运行\n'
     else
         printf 'Node.js：未安装\n'
     fi
