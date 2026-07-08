@@ -7,8 +7,15 @@ RAW_BASE_FALLBACK_URLS=(
     "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
     "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"
 )
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOCAL_INSTALLER="$SCRIPT_DIR/scripts/install.sh"
+SCRIPT_PATH="${BASH_SOURCE[0]:-}"
+
+if [[ -n "$SCRIPT_PATH" && "$SCRIPT_PATH" != "bash" && "$SCRIPT_PATH" != "-" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+    LOCAL_INSTALLER="$SCRIPT_DIR/scripts/install.sh"
+else
+    SCRIPT_DIR=""
+    LOCAL_INSTALLER=""
+fi
 
 raw_base_candidates() {
     local emitted=" " base
@@ -52,7 +59,7 @@ download_file() {
     return 1
 }
 
-if [[ -f "$LOCAL_INSTALLER" ]]; then
+if [[ -n "$LOCAL_INSTALLER" && -f "$LOCAL_INSTALLER" ]]; then
     exec bash "$LOCAL_INSTALLER" --raw-base-url "$RAW_BASE_URL" "$@"
 fi
 
