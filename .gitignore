@@ -1,0 +1,19 @@
+# Runtime installs
+SillyTavern/
+.jiuguan-tool/
+.state/
+logs/
+backups/
+
+# Dependencies and caches
+node_modules/
+.cache/
+.npm/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.vscode/
+.idea/
