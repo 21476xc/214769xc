@@ -21,7 +21,7 @@ irm https://raw.githubusercontent.com/21476xc/214769xc/main/install.ps1 | iex
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh | bash
+curl --fail --location --show-error --retry 3 --connect-timeout 15 https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh -o install.sh && bash install.sh
 ```
 
 本地开发时可以先只安装管理命令：
@@ -32,11 +32,10 @@ bash ./install.sh --skip-install
 
 ### Android Termux
 
-请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。
+请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。下面这条命令会尽量使用非交互模式安装依赖；如果系统仍询问是否覆盖配置文件，直接按回车保留默认选项即可。
 
 ```bash
-pkg update -y && pkg install -y curl
-curl -fsSL https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh | bash
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl ca-certificates && curl --fail --location --show-error --retry 3 --connect-timeout 15 https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh -o install.sh && bash install.sh
 ```
 
 如果要从手机存储导入角色或备份，可以在安装后运行：
@@ -116,7 +115,7 @@ irm https://raw.githubusercontent.com/21476xc/214769xc/main/install.ps1 | iex
 macOS/Linux/Termux：
 
 ```bash
-JIUGUAN_HOME="$HOME/SillyTavernBox" bash <(curl -fsSL https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh)
+JIUGUAN_HOME="$HOME/SillyTavernBox" bash <(curl --fail --location --show-error --retry 3 --connect-timeout 15 https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh)
 ```
 
 ## 网络和镜像

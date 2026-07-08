@@ -11,7 +11,7 @@ fi
 
 TEMP_FILE="${TMPDIR:-/tmp}/jiuguan-install.sh"
 if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$RAW_BASE_URL/scripts/install.sh" -o "$TEMP_FILE"
+    curl --fail --location --show-error --retry 3 --connect-timeout 15 "$RAW_BASE_URL/scripts/install.sh" -o "$TEMP_FILE"
 elif command -v wget >/dev/null 2>&1; then
     wget -qO "$TEMP_FILE" "$RAW_BASE_URL/scripts/install.sh"
 else

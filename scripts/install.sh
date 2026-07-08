@@ -51,7 +51,7 @@ copy_or_download() {
 
     install_info "下载 $relative"
     if command -v curl >/dev/null 2>&1; then
-        curl -fsSL "$RAW_BASE_URL/$relative" -o "$destination"
+        curl --fail --location --show-error --retry 3 --connect-timeout 15 "$RAW_BASE_URL/$relative" -o "$destination"
     elif command -v wget >/dev/null 2>&1; then
         wget -qO "$destination" "$RAW_BASE_URL/$relative"
     else

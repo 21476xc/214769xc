@@ -62,6 +62,25 @@ jg_use_sudo() {
     fi
 }
 
+jg_run_apt_get() {
+    if jg_is_termux; then
+        env DEBIAN_FRONTEND=noninteractive apt-get "$@"
+    else
+        jg_use_sudo env DEBIAN_FRONTEND=noninteractive apt-get "$@"
+    fi
+}
+
+jg_apt_update() {
+    jg_run_apt_get update
+}
+
+jg_apt_install() {
+    jg_run_apt_get install -y \
+        -o Dpkg::Options::="--force-confdef" \
+        -o Dpkg::Options::="--force-confold" \
+        "$@"
+}
+
 jg_install_homebrew_if_needed() {
     if jg_command_exists brew; then
         return
@@ -83,8 +102,8 @@ jg_install_debian_deps() {
     fi
 
     jg_info "使用 apt 安装基础依赖。"
-    jg_use_sudo apt-get update
-    jg_use_sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates tar gzip nodejs npm
+    jg_apt_update
+    jg_apt_install git curl ca-certificates tar gzip nodejs npm
     return 0
 }
 
@@ -105,8 +124,8 @@ jg_ensure_node18() {
     fi
 
     if jg_is_termux; then
-        jg_warn "当前 Node.js 版本较旧，尝试通过 Termux pkg 更新。"
-        pkg install -y nodejs || jg_die "Node.js 更新失败。请运行 pkg update && pkg install nodejs 后重试。"
+        jg_warn "当前 Node.js 版本较旧，尝试通过 Termux apt 更新。"
+        jg_apt_install nodejs || jg_die "Node.js 更新失败。请运行 apt update && apt install nodejs 后重试。"
         return
     fi
 
@@ -118,8 +137,8 @@ jg_ensure_node18() {
 
     if jg_is_linux && jg_command_exists apt-get; then
         jg_warn "系统自带 Node.js 版本较旧，准备使用 NodeSource 安装 LTS 版本。"
-        curl -fsSL https://deb.nodesource.com/setup_lts.x | jg_use_sudo bash - || jg_die "NodeSource 配置失败。请手动安装 Node.js 18 或更新版本。"
-        jg_use_sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
+        curl --fail --location --show-error --retry 3 --connect-timeout 15 https://deb.nodesource.com/setup_lts.x | jg_use_sudo bash - || jg_die "NodeSource 配置失败。请手动安装 Node.js 18 或更新版本。"
+        jg_apt_install nodejs
         return
     fi
 
@@ -131,8 +150,8 @@ jg_ensure_dependencies() {
 
     if jg_is_termux; then
         jg_info "检测到 Termux。请确认使用的是 F-Droid 版 Termux。"
-        pkg update -y
-        pkg install -y git nodejs curl tar gzip || jg_die "Termux 依赖安装失败。请运行 pkg update 后重试。"
+        jg_apt_update
+        jg_apt_install git nodejs curl tar gzip || jg_die "Termux 依赖安装失败。请运行 apt update 后重试。"
         if jg_command_exists termux-setup-storage; then
             jg_info "如需从手机存储导入角色或备份，可稍后运行 termux-setup-storage。"
         fi
@@ -446,7 +465,7 @@ jg_update_tool() {
         destination="$JG_TOOL/$relative"
         temp="$destination.tmp"
         jg_info "更新工具文件：$relative"
-        curl -fsSL "$raw_base/$relative" -o "$temp" || jg_die "下载 $relative 失败。请检查网络后重试。"
+        curl --fail --location --show-error --retry 3 --connect-timeout 15 "$raw_base/$relative" -o "$temp" || jg_die "下载 $relative 失败。请检查网络后重试。"
         mv "$temp" "$destination"
     done
     chmod +x "$JG_BIN/jiuguan.sh"
