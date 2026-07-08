@@ -571,9 +571,55 @@ function Uninstall-JgDeployment {
     Write-JgWarn "如果当前窗口仍能找到 jiuguan，请重新打开终端；PATH 会在新窗口里刷新。"
 }
 
+function Show-JgMenu {
+    while ($true) {
+        Write-Host ""
+        Write-Host "214769SillyTavern 控制台 v$script:JiuguanVersion"
+        Write-Host "----------------------------"
+        Write-Host "1. 安装或修复 SillyTavern"
+        Write-Host "2. 启动 SillyTavern"
+        Write-Host "3. 停止 SillyTavern"
+        Write-Host "4. 重启 SillyTavern"
+        Write-Host "5. 查看状态和访问地址"
+        Write-Host "6. 查看最近日志"
+        Write-Host "7. 更新工具和 SillyTavern"
+        Write-Host "8. 备份用户数据"
+        Write-Host "9. 恢复最新备份"
+        Write-Host "0. 退出"
+        Write-Host ""
+        Write-Host "卸载请使用：jiuguan uninstall；删除全部数据请使用：jiuguan uninstall --delete-data"
+        $choice = Read-Host "请输入数字"
+
+        try {
+            switch ($choice) {
+                "1" { Install-JgDeployment }
+                "2" { Start-JgSillyTavern }
+                "3" { Stop-JgSillyTavern }
+                "4" { Restart-JgSillyTavern }
+                "5" { Show-JgStatus }
+                "6" { Show-JgLogs -Lines 120 }
+                "7" { Update-JgDeployment }
+                "8" { New-JgBackup | Out-Null }
+                "9" { Restore-JgBackup }
+                "0" { return }
+                default { Write-JgWarn "请输入 0 到 9 之间的数字。" }
+            }
+        }
+        catch {
+            Write-JgError $_.Exception.Message
+        }
+
+        if ($choice -ne "0") {
+            Write-Host ""
+            Read-Host "按回车返回菜单" | Out-Null
+        }
+    }
+}
 function Show-JgHelp {
     Write-Host @"
 214769SillyTavern v$script:JiuguanVersion
+
+直接运行 jiuguan 会打开数字控制台。
 
 用法：
   jiuguan install              安装或修复依赖和 SillyTavern

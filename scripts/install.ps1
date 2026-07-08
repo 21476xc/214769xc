@@ -87,6 +87,10 @@ if (-not $SkipInstall) {
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }
+
+    Write-InstallInfo "启动 SillyTavern 并显示访问地址。"
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $cliPath start
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $cliPath status
 }
 
-Write-InstallSuccess "全部完成。常用命令：jiuguan start / jiuguan status / jiuguan update"
+Write-InstallSuccess "全部完成。以后直接运行 jiuguan 可打开数字控制台。"

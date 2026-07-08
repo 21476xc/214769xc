@@ -1,7 +1,7 @@
 ﻿[CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [string]$Command = "help",
+    [string]$Command = "menu",
 
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest = @()
@@ -45,6 +45,7 @@ try {
             $deleteData = $Rest -contains "--delete-data"
             Uninstall-JgDeployment -DeleteData:$deleteData
         }
+        "menu" { Show-JgMenu }
         "help" { Show-JgHelp }
         "--help" { Show-JgHelp }
         "-h" { Show-JgHelp }

@@ -12,7 +12,7 @@ fi
 # shellcheck source=../lib/jiuguan.sh
 source "$LIB_PATH"
 
-command_name="${1:-help}"
+command_name="${1:-menu}"
 if [[ $# -gt 0 ]]; then
     shift
 fi
@@ -34,6 +34,7 @@ case "$command_name" in
         fi
         jg_uninstall "$delete_data"
         ;;
+    menu) jg_menu ;;
     help|--help|-h) jg_help ;;
     *)
         jg_warn "未知命令：$command_name"

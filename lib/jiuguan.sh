@@ -542,9 +542,49 @@ jg_uninstall() {
     jg_warn "如果当前窗口仍能找到 jiuguan，请重新打开终端；PATH 会在新窗口里刷新。"
 }
 
+jg_menu() {
+    while true; do
+        printf '\n214769SillyTavern 控制台 v%s\n' "$JIUGUAN_VERSION"
+        printf '%s\n' '----------------------------'
+        printf '1. 安装或修复 SillyTavern\n'
+        printf '2. 启动 SillyTavern\n'
+        printf '3. 停止 SillyTavern\n'
+        printf '4. 重启 SillyTavern\n'
+        printf '5. 查看状态和访问地址\n'
+        printf '6. 查看最近日志\n'
+        printf '7. 更新工具和 SillyTavern\n'
+        printf '8. 备份用户数据\n'
+        printf '9. 恢复最新备份\n'
+        printf '0. 退出\n\n'
+        printf '卸载请使用：jiuguan uninstall；删除全部数据请使用：jiuguan uninstall --delete-data\n'
+        printf '请输入数字：'
+        IFS= read -r choice || return 0
+
+        case "$choice" in
+            1) jg_install ;;
+            2) jg_start ;;
+            3) jg_stop ;;
+            4) jg_restart ;;
+            5) jg_status ;;
+            6) jg_logs 120 ;;
+            7) jg_update ;;
+            8) jg_backup >/dev/null ;;
+            9) jg_restore ;;
+            0) return 0 ;;
+            *) jg_warn "请输入 0 到 9 之间的数字。" ;;
+        esac
+
+        if [[ "$choice" != "0" ]]; then
+            printf '\n按回车返回菜单'
+            IFS= read -r _ || return 0
+        fi
+    done
+}
 jg_help() {
     cat <<EOF
 214769SillyTavern v$JIUGUAN_VERSION
+
+直接运行 jiuguan 会打开数字控制台。
 
 用法：
   jiuguan install              安装或修复依赖和 SillyTavern

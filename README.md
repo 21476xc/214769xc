@@ -1,6 +1,6 @@
 ﻿# 214769SillyTavern
 
-214769SillyTavern 是一个面向中文小白用户的 SillyTavern 一键部署和维护工具。用户复制一条命令即可安装，之后用 `jiuguan` 管理启动、更新、日志、备份、恢复和卸载。
+214769SillyTavern 是一个面向中文小白用户的 SillyTavern 一键部署和维护工具。用户复制一条命令即可安装、启动并看到访问地址；之后直接运行 `jiuguan` 可打开数字控制台。
 
 > 当前发布 Raw 地址：`https://raw.githubusercontent.com/21476xc/214769xc/main`。
 
@@ -42,6 +42,39 @@ apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Opt
 
 ```bash
 termux-setup-storage
+```
+
+## 数字控制台
+
+安装完成后直接输入：
+
+```bash
+jiuguan
+```
+
+然后按数字选择操作：安装/修复、启动、停止、重启、状态、日志、更新、备份、恢复。卸载仍使用单独命令，避免误删数据。
+
+## 重复测试和卸载
+
+Termux/macOS/Linux 想清空后重新测试：
+
+```bash
+jiuguan uninstall --delete-data 2>/dev/null || true
+rm -rf "$HOME/214769SillyTavern" "$PREFIX/bin/jiuguan" install.sh
+hash -r 2>/dev/null || true
+```
+
+Windows PowerShell 想清空后重新测试：
+
+```powershell
+jiuguan uninstall --delete-data
+Remove-Item -Recurse -Force "$env:USERPROFILE\214769SillyTavern" -ErrorAction SilentlyContinue
+```
+
+普通用户卸载但保留数据：
+
+```bash
+jiuguan uninstall
 ```
 
 ## 常用命令
