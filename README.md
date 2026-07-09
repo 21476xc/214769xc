@@ -1,62 +1,107 @@
-﻿# 214769SillyTavern
+# 214769SillyTavern
 
-214769SillyTavern 是一个面向中文小白用户的 SillyTavern 一键部署和维护工具。用户复制一条命令即可安装、启动、看到访问地址，并自动进入数字控制台。
+214769SillyTavern 是给中文小白用户准备的 SillyTavern 一键部署和维护工具。复制一条命令后，它会自动安装依赖、拉取 SillyTavern、安装 npm 依赖、启动服务，并进入数字控制台。
 
-> 当前发布地址：`https://github.com/21476xc/214769xc`。一键命令优先走 jsDelivr CDN，脚本内部会自动回退到 GitHub Raw。
+项目地址：`https://github.com/21476xc/214769xc`
 
 ## 一键安装
 
 ### Windows 10/11 PowerShell
 
+打开 PowerShell，复制运行：
+
 ```powershell
 irm https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.ps1 | iex
 ```
 
-本地开发时可以先只安装管理命令，不拉取 SillyTavern：
-
-```powershell
-.\install.ps1 -SkipInstall
-```
-
 ### macOS / Linux
 
-```bash
-tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; (curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o "$tmp" || wget -qO "$tmp" https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh) && bash "$tmp"
-```
-
-本地开发时可以先只安装管理命令：
+打开终端，复制运行：
 
 ```bash
-bash ./install.sh --skip-install
+curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
 ```
 
 ### Android Termux
 
-请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。下面这条命令会先完整升级 Termux 基础包，再下载安装脚本，避免只更新 `curl` 导致底层库不匹配。
+请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。打开 Termux，复制运行：
 
 ```bash
-tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; apt-get update && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl wget ca-certificates && (curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o "$tmp" || wget -qO "$tmp" https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh) && bash "$tmp"
+pkg i -y wget && wget -qO- https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
 ```
 
-如果这条命令仍提示 `curl/wget` 损坏，通常是 Termux 安装源或旧版 Termux 本身异常。请先确认使用 F-Droid 版 Termux，并在 Termux 里执行 `termux-change-repo` 换一个可用镜像后重试同一条一键命令。
+Termux 短命令会先用 `wget` 下载安装脚本，脚本内部再自动完整升级 Termux 基础包，避免只更新 `curl` 导致底层库不匹配。
 
-如果要从手机存储导入角色或备份，可以在安装后运行：
+## 安装完成后
 
-```bash
-termux-setup-storage
-```
+安装成功后会自动启动 SillyTavern，并显示访问地址。
+
+- 本机访问：`http://127.0.0.1:8000`
+- 手机访问电脑上的酒馆：运行 `jiuguan status`，看输出里的局域网地址。
+- Termux：以后每次打开 Termux 会自动进入数字控制台。
+
+默认安装位置：
+
+| 平台 | 默认目录 |
+| --- | --- |
+| Windows | `%USERPROFILE%\214769SillyTavern` |
+| macOS/Linux/Termux | `$HOME/214769SillyTavern` |
 
 ## 数字控制台
 
-一键安装完成后会自动进入数字控制台；以后每次打开 Termux 也会自动进入菜单。想手动打开控制台，也可以输入：
+安装后会自动进入控制台。以后也可以手动输入：
 
 ```bash
 jiuguan
 ```
 
-然后按数字选择操作：安装/修复、启动、停止、重启、状态、日志、更新、备份/恢复、卸载。删除全部数据时会要求输入 `DELETE` 二次确认。
+菜单功能：
 
-## 重复测试和卸载
+| 数字 | 功能 |
+| --- | --- |
+| 1 | 安装或修复 SillyTavern |
+| 2 | 启动 SillyTavern |
+| 3 | 停止 SillyTavern |
+| 4 | 重启 SillyTavern |
+| 5 | 查看状态和访问地址 |
+| 6 | 查看最近日志 |
+| 7 | 更新工具和 SillyTavern |
+| 8 | 备份/恢复用户数据 |
+| 9 | 卸载 |
+| 0 | 退出 |
+
+## 常用命令
+
+不想用菜单时，也可以直接输入命令：
+
+| 命令 | 用途 |
+| --- | --- |
+| `jiuguan` | 打开数字控制台 |
+| `jiuguan install` | 安装或修复依赖和 SillyTavern |
+| `jiuguan start` | 启动 SillyTavern |
+| `jiuguan stop` | 停止 SillyTavern |
+| `jiuguan restart` | 重启 SillyTavern |
+| `jiuguan status` | 查看版本、运行状态和访问地址 |
+| `jiuguan logs` | 查看最近日志 |
+| `jiuguan backup` | 备份角色、聊天、配置和插件等用户数据 |
+| `jiuguan restore` | 恢复最新备份 |
+| `jiuguan update` | 更新工具和 SillyTavern，更新前自动备份 |
+| `jiuguan uninstall` | 卸载管理工具，保留数据 |
+| `jiuguan uninstall --delete-data` | 卸载并删除本地数据 |
+
+## 卸载和重复测试
+
+普通卸载，保留 SillyTavern 和备份：
+
+```bash
+jiuguan uninstall
+```
+
+彻底删除本地数据：
+
+```bash
+jiuguan uninstall --delete-data
+```
 
 Termux/macOS/Linux 想清空后重新测试：
 
@@ -75,72 +120,87 @@ jiuguan uninstall --delete-data
 Remove-Item -Recurse -Force "$env:USERPROFILE\214769SillyTavern" -ErrorAction SilentlyContinue
 ```
 
-普通用户卸载但保留数据：
+## 数据安全
 
-```bash
-jiuguan uninstall
-```
+`jiuguan update` 会先自动备份，再更新 SillyTavern。备份包含：
 
-## 常用命令
+- `data`
+- `public/user`
+- `config.yaml`
+- `config.conf`
+- `plugins`
 
-```bash
-jiuguan install
-jiuguan start
-jiuguan status
-jiuguan logs
-jiuguan backup
-jiuguan update
-jiuguan stop
-jiuguan restore
-jiuguan uninstall
-```
+备份位置：
 
-| 命令 | 用途 |
+| 平台 | 备份文件 |
 | --- | --- |
-| `jiuguan install` | 安装或修复 Git、Node.js、SillyTavern 和 npm 依赖 |
-| `jiuguan start` | 启动 SillyTavern |
-| `jiuguan stop` | 停止 SillyTavern |
-| `jiuguan restart` | 重启 SillyTavern |
-| `jiuguan status` | 查看安装目录、版本、运行状态和访问地址 |
-| `jiuguan logs [行数]` | 查看最近日志，默认 120 行 |
-| `jiuguan backup` | 备份角色、聊天、配置和插件等用户数据 |
-| `jiuguan restore [备份路径]` | 恢复指定备份；不传路径时恢复最新备份 |
-| `jiuguan update` | 更新工具和 SillyTavern，更新前自动备份 |
-| `jiuguan uninstall` | 卸载管理工具，默认保留 SillyTavern 和备份 |
-| `jiuguan uninstall --delete-data` | 卸载并删除本地 SillyTavern、日志和备份 |
+| Windows | `%USERPROFILE%\214769SillyTavern\backups\sillytavern-时间.zip` |
+| macOS/Linux/Termux | `$HOME/214769SillyTavern/backups/sillytavern-时间.tar.gz` |
 
-## 访问地址
+## 救急命令
 
-桌面端启动后默认访问：
+### Termux 短命令失败
 
-```text
-http://127.0.0.1:8000
-```
-
-如果要用手机访问电脑上的酒馆，运行：
+如果 Termux 短命令连脚本都下载不下来，可以先换源：
 
 ```bash
-jiuguan status
+termux-change-repo
 ```
 
-然后在手机浏览器打开输出里的局域网地址，例如：
+如果遇到 `curl/wget` 损坏、底层库不匹配，使用这条完整兼容命令：
 
-```text
-http://192.168.1.23:8000
+```bash
+tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; apt-get update && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl wget ca-certificates && (curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o "$tmp" || wget -qO "$tmp" https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh) && bash "$tmp"
 ```
 
-请确认手机和电脑在同一个 Wi-Fi 下，并允许系统防火墙放行 Node.js。
+### macOS/Linux 没有 curl
 
-## 安装位置
+如果系统没有 `curl`，用 `wget`：
 
-默认安装到当前用户目录，不写系统目录：
+```bash
+wget -qO- https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
+```
 
-| 平台 | 默认目录 |
-| --- | --- |
-| Windows | `%USERPROFILE%\214769SillyTavern` |
-| macOS/Linux/Termux | `$HOME/214769SillyTavern` |
+## 常见问题
 
-可以通过环境变量改安装目录。
+### Windows 没有 Git 或 Node.js
+
+工具会优先复用已有安装；缺失时尝试使用 `winget` 安装。若 `winget` 不可用，请手动安装：
+
+- Git: https://git-scm.com/download/win
+- Node.js LTS: https://nodejs.org/
+
+### macOS 提示安装 Homebrew
+
+macOS 缺少 Git 或 Node.js 时，工具会引导安装 Homebrew。这个过程可能要求输入电脑密码。
+
+### Linux 不是 Debian/Ubuntu
+
+v1 只会在 Debian/Ubuntu 系自动使用 `apt` 安装依赖。其他发行版请先手动安装 Git、Node.js 18+、npm、curl、tar、gzip，再运行 `jiuguan install`。
+
+### Android 后台运行不稳定
+
+Android 可能会清理 Termux 后台进程。长时间使用时请保持 Termux 活跃，或在 Termux 里配置 wakelock。v1 不注册系统服务。
+
+### 从手机存储导入角色或备份
+
+Termux 安装后可以运行：
+
+```bash
+termux-setup-storage
+```
+
+### iPhone/iPad 能部署吗
+
+不能在 iOS 本机部署。iPhone/iPad 可以通过浏览器访问电脑或 Android Termux 上运行的 SillyTavern。
+
+## 高级设置
+
+自定义安装目录：
+
+```bash
+JIUGUAN_HOME="$HOME/SillyTavernBox" bash <(curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh)
+```
 
 Windows PowerShell：
 
@@ -149,32 +209,13 @@ $env:JIUGUAN_HOME = "D:\SillyTavernBox"
 irm https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.ps1 | iex
 ```
 
-macOS/Linux/Termux：
-
-```bash
-tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; (curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o "$tmp" || wget -qO "$tmp" https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh) && JIUGUAN_HOME="$HOME/SillyTavernBox" bash "$tmp"
-```
-
-## 网络和镜像
-
-工具会优先使用官方 GitHub 和 npm 源。如果 npm 官方源不可用，会自动改用 `https://registry.npmmirror.com`。
-
-如果 GitHub 拉取失败，可以手动指定 SillyTavern 镜像仓库。
-
-Windows PowerShell：
-
-```powershell
-$env:JIUGUAN_SILLYTAVERN_REPO = "https://github.com/SillyTavern/SillyTavern.git"
-jiuguan install
-```
-
-macOS/Linux/Termux：
+指定 SillyTavern 镜像仓库：
 
 ```bash
 JIUGUAN_SILLYTAVERN_REPO="https://github.com/SillyTavern/SillyTavern.git" jiuguan install
 ```
 
-如果你有自己的 npm 代理源，也可以指定：
+指定 npm 镜像源：
 
 ```bash
 JIUGUAN_NPM_REGISTRY="https://registry.npmmirror.com" jiuguan install
@@ -186,58 +227,6 @@ Windows PowerShell 对应写法：
 $env:JIUGUAN_NPM_REGISTRY = "https://registry.npmmirror.com"
 jiuguan install
 ```
-
-## 更新和数据安全
-
-`jiuguan update` 会先执行备份，再更新 SillyTavern 代码和 npm 依赖。备份包含常见用户数据：
-
-- `data`
-- `public/user`
-- `config.yaml`
-- `config.conf`
-- `plugins`
-
-备份目录：
-
-| 平台 | 备份格式 |
-| --- | --- |
-| Windows | `%USERPROFILE%\214769SillyTavern\backups\sillytavern-时间.zip` |
-| macOS/Linux/Termux | `$HOME/214769SillyTavern/backups/sillytavern-时间.tar.gz` |
-
-## 常见问题
-
-### PowerShell 提示无法运行脚本
-
-请用 README 里的 `irm ... | iex` 命令，安装后的 `jiuguan.cmd` 会自动使用 `-ExecutionPolicy Bypass` 调用管理脚本。
-
-### Windows 没有 Git 或 Node.js
-
-工具会优先复用已有安装；缺失时尝试使用 `winget` 安装。若 `winget` 不可用，请手动安装：
-
-- Git: https://git-scm.com/download/win
-- Node.js LTS: https://nodejs.org/
-
-脚本会尝试刷新当前 PowerShell 的 PATH。极少数电脑刚装完仍找不到新命令时，重新打开 PowerShell 后运行：
-
-```powershell
-jiuguan install
-```
-
-### Linux 不是 Debian/Ubuntu
-
-v1 只会在 Debian/Ubuntu 系自动使用 `apt` 安装依赖。其他发行版请先手动安装 Git、Node.js 18+、npm、curl、tar、gzip，再运行：
-
-```bash
-jiuguan install
-```
-
-### Android 后台运行不稳定
-
-Android 可能会清理 Termux 后台进程。长时间使用时请保持 Termux 活跃，或在 Termux 里配置 wakelock。v1 不注册系统服务。
-
-### iPhone/iPad 能部署吗
-
-不能在 iOS 本机部署。iPhone/iPad 可以通过浏览器访问电脑或 Android Termux 上运行的 SillyTavern。
 
 ## 开发者说明
 
@@ -261,13 +250,10 @@ Android 可能会清理 Termux 后台进程。长时间使用时请保持 Termux
     └── validate.ps1
 ```
 
-本地语法和入口验证：
+本地验证：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\validate.ps1
 ```
 
-发布前需要做两件事：
-
-1. 确认 GitHub 仓库地址为 `https://github.com/21476xc/214769xc`。
-2. 在 Windows、macOS/Linux 和 Termux 上分别验证一次 `install`、`start`、`status`、`backup`、`update`、`stop`、`uninstall`。
+发布前建议在 Windows、macOS/Linux 和 Termux 上分别验证一次 `install`、`start`、`status`、`backup`、`update`、`stop`、`uninstall`。
