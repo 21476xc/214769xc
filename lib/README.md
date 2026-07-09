@@ -4,7 +4,8 @@
 
 - 路径初始化：默认安装在用户目录下的 `214769SillyTavern`。
 - 依赖检测：Git、Node.js 18+、npm。
-- 网络策略：官方源优先，npm 失败时切换 npmmirror，Git 仓库可通过环境变量覆盖。
+- 网络策略：工具文件下载支持 GitHub Raw、jsDelivr、fastly 多源兜底；npm 失败时切换 npmmirror；Git 仓库可通过环境变量覆盖。
+- Termux 策略：先完整升级基础包，再安装依赖，避免 curl/openssl 等底层库版本不匹配。
 - SillyTavern 管理：安装、更新、启动、停止、重启、状态、日志。
 - 数据保护：更新前备份，支持手动备份和恢复。
 - 卸载策略：默认只卸载管理工具，用户数据需要显式 `--delete-data` 才删除。

@@ -66,12 +66,16 @@ download_file() {
                 RAW_BASE_URL="$base"
                 return 0
             fi
-        elif command -v wget >/dev/null 2>&1; then
+        fi
+
+        if command -v wget >/dev/null 2>&1; then
             if wget -qO "$destination" "$url"; then
                 RAW_BASE_URL="$base"
                 return 0
             fi
-        else
+        fi
+
+        if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
             install_die "系统缺少 curl/wget，无法下载工具文件。请先安装 curl 后重试。"
         fi
         install_warn "下载失败，尝试备用源。"
@@ -107,15 +111,32 @@ termux_prepare_packages() {
         return
     fi
 
+    local apt_options=(
+        -o Dpkg::Options::=--force-confdef
+        -o Dpkg::Options::=--force-confold
+    )
+
     install_info "准备 Termux 基础环境。"
-    env DEBIAN_FRONTEND=noninteractive apt-get update
-    env DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y \
-        -o Dpkg::Options::="--force-confdef" \
-        -o Dpkg::Options::="--force-confold"
-    env DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        -o Dpkg::Options::="--force-confdef" \
-        -o Dpkg::Options::="--force-confold" \
-        curl ca-certificates
+    env DEBIAN_FRONTEND=noninteractive apt-get update ||
+        install_die "Termux 更新软件源失败。请切换网络或更换 Termux 镜像源后重试。"
+    env DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y "${apt_options[@]}" ||
+        install_die "Termux 自动升级基础包失败。请重新打开 Termux 后再执行一键命令。"
+    env DEBIAN_FRONTEND=noninteractive apt-get install -y "${apt_options[@]}" \
+        curl wget ca-certificates ||
+        install_die "Termux 安装下载工具失败。请重新打开 Termux 后再执行一键命令。"
+    hash -r 2>/dev/null || true
+
+    if command -v curl >/dev/null 2>&1 && ! curl --version >/dev/null 2>&1; then
+        install_warn "curl 仍无法运行，尝试重装相关基础库。"
+        env DEBIAN_FRONTEND=noninteractive apt-get install --reinstall -y "${apt_options[@]}" \
+            curl libcurl openssl libngtcp2 ca-certificates >/dev/null 2>&1 || true
+        hash -r 2>/dev/null || true
+    fi
+
+    if ! { command -v curl >/dev/null 2>&1 && curl --version >/dev/null 2>&1; } &&
+        ! { command -v wget >/dev/null 2>&1 && wget --version >/dev/null 2>&1; }; then
+        install_die "Termux 的 curl/wget 仍无法运行。请重新打开 Termux，先执行 pkg upgrade，再运行一键命令。"
+    fi
 }
 install_termux_auto_menu() {
     if ! is_termux; then

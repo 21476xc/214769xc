@@ -43,12 +43,16 @@ download_file() {
                 RAW_BASE_URL="$base"
                 return 0
             fi
-        elif command -v wget >/dev/null 2>&1; then
+        fi
+
+        if command -v wget >/dev/null 2>&1; then
             if wget -qO "$destination" "$url"; then
                 RAW_BASE_URL="$base"
                 return 0
             fi
-        else
+        fi
+
+        if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
             printf '[错误] 系统缺少 curl/wget，无法下载安装脚本。\n' >&2
             return 1
         fi

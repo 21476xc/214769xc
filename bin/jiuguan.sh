@@ -25,7 +25,7 @@ case "$command_name" in
     restart) jg_restart "$@" ;;
     status) jg_status "$@" ;;
     logs) jg_logs "$@" ;;
-    backup) jg_backup "$@" >/dev/null ;;
+    backup) jg_backup "$@" ;;
     restore) jg_restore "$@" ;;
     uninstall)
         delete_data=0

@@ -2,14 +2,14 @@
 
 214769SillyTavern 是一个面向中文小白用户的 SillyTavern 一键部署和维护工具。用户复制一条命令即可安装、启动、看到访问地址，并自动进入数字控制台。
 
-> 当前发布 Raw 地址：`https://raw.githubusercontent.com/21476xc/214769xc/main`。
+> 当前发布地址：`https://github.com/21476xc/214769xc`。一键命令优先走 jsDelivr CDN，脚本内部会自动回退到 GitHub Raw。
 
 ## 一键安装
 
 ### Windows 10/11 PowerShell
 
 ```powershell
-irm https://raw.githubusercontent.com/21476xc/214769xc/main/install.ps1 | iex
+irm https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.ps1 | iex
 ```
 
 本地开发时可以先只安装管理命令，不拉取 SillyTavern：
@@ -21,7 +21,7 @@ irm https://raw.githubusercontent.com/21476xc/214769xc/main/install.ps1 | iex
 ### macOS / Linux
 
 ```bash
-curl -L https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
+tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; (curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o "$tmp" || wget -qO "$tmp" https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh) && bash "$tmp"
 ```
 
 本地开发时可以先只安装管理命令：
@@ -32,17 +32,13 @@ bash ./install.sh --skip-install
 
 ### Android Termux
 
-请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。安装脚本会自动准备 Termux 基础环境；如果系统询问是否覆盖配置文件，直接按回车保留默认选项即可。
+请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。下面这条命令会先完整升级 Termux 基础包，再下载安装脚本，避免只更新 `curl` 导致底层库不匹配。
 
 ```bash
-pkg install -y curl && curl -L https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
+tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; apt-get update && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl wget ca-certificates && (curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o "$tmp" || wget -qO "$tmp" https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh) && bash "$tmp"
 ```
 
-如果短命令提示 `curl` 损坏或无法启动，先运行这条修复 Termux 包环境，再重新执行短命令：
-
-```bash
-apt-get update && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
-```
+如果这条命令仍提示 `curl/wget` 损坏，通常是 Termux 安装源或旧版 Termux 本身异常。请先确认使用 F-Droid 版 Termux，并在 Termux 里执行 `termux-change-repo` 换一个可用镜像后重试同一条一键命令。
 
 如果要从手机存储导入角色或备份，可以在安装后运行：
 
@@ -66,7 +62,8 @@ Termux/macOS/Linux 想清空后重新测试：
 
 ```bash
 jiuguan uninstall --delete-data 2>/dev/null || true
-rm -rf "$HOME/214769SillyTavern" "$PREFIX/bin/jiuguan" install.sh
+rm -rf "$HOME/214769SillyTavern" "$HOME/.local/bin/jiuguan" install.sh
+[ -n "${PREFIX:-}" ] && rm -f "$PREFIX/bin/jiuguan"
 sed -i '/# 214769SillyTavern auto menu begin/,/# 214769SillyTavern auto menu end/d' "$HOME/.bashrc" 2>/dev/null || true
 hash -r 2>/dev/null || true
 ```
@@ -149,13 +146,13 @@ Windows PowerShell：
 
 ```powershell
 $env:JIUGUAN_HOME = "D:\SillyTavernBox"
-irm https://raw.githubusercontent.com/21476xc/214769xc/main/install.ps1 | iex
+irm https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.ps1 | iex
 ```
 
 macOS/Linux/Termux：
 
 ```bash
-JIUGUAN_HOME="$HOME/SillyTavernBox" bash <(curl --fail --location --show-error --retry 3 --connect-timeout 15 https://raw.githubusercontent.com/21476xc/214769xc/main/install.sh)
+tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; (curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o "$tmp" || wget -qO "$tmp" https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh) && JIUGUAN_HOME="$HOME/SillyTavernBox" bash "$tmp"
 ```
 
 ## 网络和镜像
@@ -220,7 +217,7 @@ jiuguan install
 - Git: https://git-scm.com/download/win
 - Node.js LTS: https://nodejs.org/
 
-安装后重新打开 PowerShell，再运行：
+脚本会尝试刷新当前 PowerShell 的 PATH。极少数电脑刚装完仍找不到新命令时，重新打开 PowerShell 后运行：
 
 ```powershell
 jiuguan install

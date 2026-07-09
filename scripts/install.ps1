@@ -15,6 +15,13 @@ if (-not $RawBaseUrl) {
     $RawBaseUrl = "https://raw.githubusercontent.com/21476xc/214769xc/main"
 }
 
+$script:DefaultRawBaseUrl = "https://raw.githubusercontent.com/21476xc/214769xc/main"
+$script:RawBaseFallbackUrls = @(
+    "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main",
+    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"
+)
+$script:SelectedRawBaseUrl = $RawBaseUrl
+
 function Write-InstallInfo {
     param([string]$Message)
     Write-Host "[信息] $Message"
@@ -23,6 +30,27 @@ function Write-InstallInfo {
 function Write-InstallSuccess {
     param([string]$Message)
     Write-Host "[完成] $Message" -ForegroundColor Green
+}
+
+function Write-InstallWarn {
+    param([string]$Message)
+    Write-Host "[提醒] $Message" -ForegroundColor Yellow
+}
+
+function Get-InstallRawBaseCandidates {
+    param([string]$Preferred)
+
+    $seen = @{}
+    foreach ($base in @($Preferred, $script:DefaultRawBaseUrl) + $script:RawBaseFallbackUrls) {
+        if (-not $base) {
+            continue
+        }
+
+        if (-not $seen.ContainsKey($base)) {
+            $seen[$base] = $true
+            $base
+        }
+    }
 }
 
 function Copy-OrDownloadToolFile {
@@ -45,9 +73,20 @@ function Copy-OrDownloadToolFile {
         }
     }
 
-    $uri = "$RawBaseUrl/$RelativePath"
-    Write-InstallInfo "下载 $RelativePath"
-    Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -ErrorAction Stop
+    foreach ($base in @(Get-InstallRawBaseCandidates -Preferred $RawBaseUrl)) {
+        $uri = "$base/$RelativePath"
+        Write-InstallInfo "下载 $uri"
+        try {
+            Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -ErrorAction Stop
+            $script:SelectedRawBaseUrl = $base
+            return
+        }
+        catch {
+            Write-InstallWarn "下载失败，尝试备用源。"
+        }
+    }
+
+    throw "下载 $RelativePath 失败。请检查网络后重试。"
 }
 
 $InstallRoot = [System.IO.Path]::GetFullPath($InstallRoot)
@@ -58,9 +97,9 @@ $libDir = Join-Path $toolRoot "lib"
 New-Item -ItemType Directory -Force -LiteralPath $binDir | Out-Null
 New-Item -ItemType Directory -Force -LiteralPath $libDir | Out-Null
 
-Copy-OrDownloadToolFile -RelativePath "bin/jiuguan.ps1" -Destination (Join-Path $binDir "jiuguan.ps1") -RawBaseUrl $RawBaseUrl
-Copy-OrDownloadToolFile -RelativePath "lib/jiuguan.ps1" -Destination (Join-Path $libDir "jiuguan.ps1") -RawBaseUrl $RawBaseUrl
-Set-Content -LiteralPath (Join-Path $toolRoot "raw-base-url.txt") -Value $RawBaseUrl -Encoding UTF8
+Copy-OrDownloadToolFile -RelativePath "bin/jiuguan.ps1" -Destination (Join-Path $binDir "jiuguan.ps1") -RawBaseUrl $script:SelectedRawBaseUrl
+Copy-OrDownloadToolFile -RelativePath "lib/jiuguan.ps1" -Destination (Join-Path $libDir "jiuguan.ps1") -RawBaseUrl $script:SelectedRawBaseUrl
+Set-Content -LiteralPath (Join-Path $toolRoot "raw-base-url.txt") -Value $script:SelectedRawBaseUrl -Encoding UTF8
 
 $cliPath = Join-Path $binDir "jiuguan.ps1"
 $shimPath = Join-Path $InstallRoot "jiuguan.cmd"

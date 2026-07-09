@@ -81,6 +81,39 @@ jg_apt_install() {
         "$@"
 }
 
+jg_apt_full_upgrade() {
+    jg_run_apt_get full-upgrade -y \
+        -o Dpkg::Options::="--force-confdef" \
+        -o Dpkg::Options::="--force-confold"
+}
+
+jg_termux_prepare_packages() {
+    jg_info "检测到 Termux。请确认使用的是 F-Droid 版 Termux。"
+    jg_info "准备 Termux 基础环境，避免只更新 curl 导致底层库不匹配。"
+    jg_apt_update || jg_die "Termux 更新软件源失败。请切换网络或更换 Termux 镜像源后重试。"
+    jg_apt_full_upgrade || jg_die "Termux 自动升级基础包失败。请重新打开 Termux 后再运行：jiuguan install"
+    jg_apt_install git nodejs curl wget ca-certificates tar gzip || jg_die "Termux 依赖安装失败。请重新打开 Termux 后再运行：jiuguan install"
+    hash -r 2>/dev/null || true
+
+    if jg_command_exists curl && ! curl --version >/dev/null 2>&1; then
+        jg_warn "curl 仍无法运行，尝试重装相关基础库。"
+        jg_run_apt_get install --reinstall -y \
+            -o Dpkg::Options::="--force-confdef" \
+            -o Dpkg::Options::="--force-confold" \
+            curl libcurl openssl libngtcp2 ca-certificates >/dev/null 2>&1 || true
+        hash -r 2>/dev/null || true
+    fi
+
+    if ! { jg_command_exists curl && curl --version >/dev/null 2>&1; } &&
+        ! { jg_command_exists wget && wget --version >/dev/null 2>&1; }; then
+        jg_die "Termux 的 curl/wget 仍无法运行。请重新打开 Termux，先执行 pkg upgrade，再运行：jiuguan install"
+    fi
+
+    if jg_command_exists termux-setup-storage; then
+        jg_info "如需从手机存储导入角色或备份，可稍后运行 termux-setup-storage。"
+    fi
+}
+
 jg_install_homebrew_if_needed() {
     if jg_command_exists brew; then
         return
@@ -136,6 +169,20 @@ jg_node_major() {
     printf '%s\n' "$version" | sed 's/^v//' | awk -F. '{print $1}'
 }
 
+jg_verify_node18() {
+    local major node_status
+    set +e
+    major="$(jg_node_major)"
+    node_status=$?
+    set -e
+
+    if [[ "$node_status" -eq 0 && "$major" =~ ^[0-9]+$ && "$major" -ge 18 ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
 jg_ensure_node18() {
     local major node_status
     set +e
@@ -175,6 +222,7 @@ jg_ensure_node18() {
     if jg_is_macos; then
         jg_install_homebrew_if_needed
         brew install node || brew upgrade node || jg_die "Node.js 安装失败。请访问 https://nodejs.org/ 手动安装 LTS 版本。"
+        jg_verify_node18 || jg_die "Node.js 安装后仍不是 18 或更新版本。请重新打开终端后运行：jiuguan install"
         return
     fi
 
@@ -182,6 +230,7 @@ jg_ensure_node18() {
         jg_warn "系统自带 Node.js 版本较旧，准备使用 NodeSource 安装 LTS 版本。"
         curl --fail --location --show-error --retry 3 --connect-timeout 15 https://deb.nodesource.com/setup_lts.x | jg_use_sudo bash - || jg_die "NodeSource 配置失败。请手动安装 Node.js 18 或更新版本。"
         jg_apt_install nodejs
+        jg_verify_node18 || jg_die "Node.js 安装后仍不是 18 或更新版本。请重新打开终端后运行：jiuguan install"
         return
     fi
 
@@ -192,12 +241,7 @@ jg_ensure_dependencies() {
     jg_info "检查 Git、Node.js 和 npm。"
 
     if jg_is_termux; then
-        jg_info "检测到 Termux。请确认使用的是 F-Droid 版 Termux。"
-        jg_apt_update
-        jg_apt_install git nodejs curl tar gzip || jg_die "Termux 依赖安装失败。请运行 apt update 后重试。"
-        if jg_command_exists termux-setup-storage; then
-            jg_info "如需从手机存储导入角色或备份，可稍后运行 termux-setup-storage。"
-        fi
+        jg_termux_prepare_packages
     elif jg_is_macos; then
         jg_install_homebrew_if_needed
         brew install git node || true
@@ -331,6 +375,7 @@ jg_start() {
         fi
     else
         jg_warn "启动进程很快退出了，请运行 jiuguan logs 查看原因。"
+        rm -f -- "$JG_PID"
     fi
 }
 
@@ -475,14 +520,22 @@ jg_restore() {
     stage="$JG_STATE/restore-$stamp"
     rm -rf -- "$stage"
     mkdir -p "$stage"
-    tar -xzf "$backup_path" -C "$stage"
+    if tar -tzf "$backup_path" | awk '
+        $0 ~ /^\/|(^|\/)\.\.(\/|$)/ { bad=1 }
+        END { exit bad ? 1 : 0 }
+    '; then
+        tar -xzf "$backup_path" -C "$stage"
+    else
+        rm -rf -- "$stage"
+        jg_die "备份文件里包含不安全路径，已取消恢复：$backup_path"
+    fi
 
     for item in data public/user config.yaml config.conf plugins; do
         source="$stage/$item"
         target="$JG_ST/$item"
         if [[ -e "$source" ]]; then
             case "$target" in
-                "$JG_ST"/*) rm -rf -- "$target" ;;
+                "$JG_ST"/*) [[ -e "$target" ]] && jg_safe_rm_rf "$target" ;;
                 *) jg_die "恢复目标路径异常：$target" ;;
             esac
             mkdir -p "$(dirname "$target")"
@@ -520,10 +573,16 @@ jg_download_tool_file() {
         [[ -n "$base" ]] || continue
         url="$base/$relative"
         jg_info "下载 $url"
-        if curl --fail --location --show-error --retry 3 --connect-timeout 15 "$url" -o "$destination"; then
+        if jg_command_exists curl && curl --fail --location --show-error --retry 3 --connect-timeout 15 "$url" -o "$destination"; then
             JG_SELECTED_RAW_BASE="$base"
             return 0
         fi
+
+        if jg_command_exists wget && wget -qO "$destination" "$url"; then
+            JG_SELECTED_RAW_BASE="$base"
+            return 0
+        fi
+
         jg_warn "下载失败，尝试备用源。"
     done < <(jg_raw_base_candidates "$preferred")
 
@@ -569,7 +628,7 @@ jg_update() {
         was_running=1
     fi
 
-    jg_backup >/dev/null
+    jg_backup
 
     if [[ "$was_running" -eq 1 ]]; then
         jg_stop
@@ -589,12 +648,28 @@ jg_update() {
 
 jg_safe_rm_rf() {
     local path="$1"
+    local root_abs home_abs target_abs target_dir target_base
     [[ -n "$path" ]] || jg_die "拒绝删除空路径。"
-    case "$path" in
-        /|"$HOME"|"$HOME/"|"$JG_ROOT")
-            jg_die "拒绝删除高风险路径：$path"
+    [[ -e "$path" || -L "$path" ]] || return 0
+
+    root_abs="$(mkdir -p "$JG_ROOT" && cd -P "$JG_ROOT" && pwd)"
+    home_abs="$(cd -P "$HOME" && pwd)"
+    if [[ -d "$path" && ! -L "$path" ]]; then
+        target_abs="$(cd -P "$path" && pwd)"
+    else
+        target_dir="$(dirname "$path")"
+        target_base="$(basename "$path")"
+        target_abs="$(cd -P "$target_dir" && printf '%s/%s\n' "$(pwd)" "$target_base")"
+    fi
+
+    case "$target_abs" in
+        /|"$home_abs"|"$root_abs")
+            jg_die "拒绝删除高风险路径：$target_abs"
             ;;
+        "$root_abs"/*) ;;
+        *) jg_die "拒绝删除安装目录外的路径：$target_abs" ;;
     esac
+
     rm -rf -- "$path"
 }
 
@@ -665,7 +740,7 @@ jg_data_menu() {
         IFS= read -r choice || return 0
 
         case "$choice" in
-            1) jg_menu_action jg_backup >/dev/null ;;
+            1) jg_menu_action jg_backup ;;
             2) jg_menu_action jg_restore ;;
             0) return 0 ;;
             *) jg_warn "请输入 0 到 2 之间的数字。" ;;

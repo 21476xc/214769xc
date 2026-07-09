@@ -2,6 +2,11 @@
 $script:SillyTavernRepoDefault = "https://github.com/SillyTavern/SillyTavern.git"
 $script:NpmOfficialRegistry = "https://registry.npmjs.org/"
 $script:NpmMirrorRegistry = "https://registry.npmmirror.com"
+$script:ToolRawBaseDefault = "https://raw.githubusercontent.com/21476xc/214769xc/main"
+$script:ToolRawBaseFallbacks = @(
+    "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main",
+    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"
+)
 
 function Write-JgInfo {
     param([string]$Message)
@@ -101,10 +106,38 @@ function Install-JgWindowsPackage {
     Write-JgInfo "正在通过 winget 安装 $DisplayName。"
     & winget install --id $WingetId -e --source winget --accept-package-agreements --accept-source-agreements
     if ($LASTEXITCODE -ne 0) {
-        throw "winget 安装 $DisplayName 失败。请手动安装：$ManualUrl"
+        Write-JgWarn "winget install 未完成，尝试 winget upgrade。"
+        & winget upgrade --id $WingetId -e --source winget --accept-package-agreements --accept-source-agreements
+        if ($LASTEXITCODE -ne 0) {
+            throw "winget 安装 $DisplayName 失败。请手动安装：$ManualUrl"
+        }
     }
 
     Refresh-JgPath
+}
+
+function Get-JgNodeVersionText {
+    if (-not (Test-JgCommand "node")) {
+        throw "没有找到 Node.js。"
+    }
+
+    $output = (& node --version 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Node.js 已安装但无法运行：$output"
+    }
+
+    return (($output | Select-Object -First 1) -replace "^v", "").Trim()
+}
+
+function Test-JgNode18 {
+    try {
+        $nodeVersionText = Get-JgNodeVersionText
+        $nodeMajor = [int]($nodeVersionText.Split(".")[0])
+        return ($nodeMajor -ge 18)
+    }
+    catch {
+        return $false
+    }
 }
 
 function Ensure-JgDependencies {
@@ -118,19 +151,29 @@ function Ensure-JgDependencies {
         Install-JgWindowsPackage -DisplayName "Node.js LTS" -WingetId "OpenJS.NodeJS.LTS" -ManualUrl "https://nodejs.org/"
     }
 
+    if (-not (Test-JgNode18)) {
+        $nodeVersionText = "不可用"
+        try {
+            $nodeVersionText = Get-JgNodeVersionText
+        }
+        catch {
+            Write-JgWarn $_.Exception.Message
+        }
+        Write-JgWarn "当前 Node.js 是 v$nodeVersionText，SillyTavern 建议使用 Node.js 18 或更新版本。"
+        Install-JgWindowsPackage -DisplayName "Node.js LTS" -WingetId "OpenJS.NodeJS.LTS" -ManualUrl "https://nodejs.org/"
+    }
+
+    Refresh-JgPath
+    if (-not (Test-JgNode18)) {
+        throw "Node.js 安装后仍不是 18 或更新版本。请重新打开 PowerShell 后运行：jiuguan install"
+    }
+
     if (-not (Test-JgCommand "npm")) {
         Refresh-JgPath
     }
 
     if (-not (Test-JgCommand "npm")) {
         throw "没有找到 npm。请重新打开 PowerShell 后运行：jiuguan install"
-    }
-
-    $nodeVersionText = (& node --version) -replace "^v", ""
-    $nodeMajor = [int]($nodeVersionText.Split(".")[0])
-    if ($nodeMajor -lt 18) {
-        Write-JgWarn "当前 Node.js 是 v$nodeVersionText，SillyTavern 建议使用 Node.js 18 或更新版本。"
-        Install-JgWindowsPackage -DisplayName "Node.js LTS" -WingetId "OpenJS.NodeJS.LTS" -ManualUrl "https://nodejs.org/"
     }
 
     Write-JgSuccess "依赖检查完成。"
@@ -146,6 +189,44 @@ function Test-JgUrl {
     catch {
         return $false
     }
+}
+
+function Get-JgRawBaseCandidates {
+    param([string]$Preferred)
+
+    $seen = @{}
+    foreach ($base in @($Preferred, $script:ToolRawBaseDefault) + $script:ToolRawBaseFallbacks) {
+        if (-not $base) {
+            continue
+        }
+
+        if (-not $seen.ContainsKey($base)) {
+            $seen[$base] = $true
+            $base
+        }
+    }
+}
+
+function Invoke-JgDownloadToolFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)][string]$Destination,
+        [string]$PreferredRawBase
+    )
+
+    foreach ($base in @(Get-JgRawBaseCandidates -Preferred $PreferredRawBase)) {
+        $uri = "$base/$RelativePath"
+        Write-JgInfo "下载 $uri"
+        try {
+            Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -ErrorAction Stop
+            return $base
+        }
+        catch {
+            Write-JgWarn "下载失败，尝试备用源。"
+        }
+    }
+
+    throw "下载 $RelativePath 失败。请检查网络后重试。"
 }
 
 function Get-JgNpmRegistryArgs {
@@ -277,6 +358,9 @@ npm start *>> '$safeLogPath'
     $running = Get-JgRunningProcess
     if (-not $running) {
         Write-JgWarn "启动进程很快退出了，请运行 jiuguan logs 查看原因。"
+        if (Test-Path -LiteralPath $paths.PidFile) {
+            Remove-Item -LiteralPath $paths.PidFile -Force
+        }
         return
     }
 
@@ -346,7 +430,12 @@ function Show-JgStatus {
     Write-Host "安装目录：$($paths.Root)"
 
     if (Test-JgCommand "node") {
-        Write-Host "Node.js：$(& node --version)"
+        try {
+            Write-Host "Node.js：v$(Get-JgNodeVersionText)"
+        }
+        catch {
+            Write-Host "Node.js：已安装但无法运行"
+        }
     }
     else {
         Write-Host "Node.js：未安装"
@@ -457,14 +546,20 @@ function Restore-JgBackup {
     New-Item -ItemType Directory -Force -LiteralPath $stage | Out-Null
     Expand-Archive -LiteralPath $BackupPath -DestinationPath $stage -Force
 
-    Get-ChildItem -LiteralPath $stage -Recurse -Force |
-        Where-Object { -not $_.PSIsContainer -and $_.Name -ne "BACKUP_INFO.txt" } |
-        ForEach-Object {
-            $relative = $_.FullName.Substring($stage.Length).TrimStart("\", "/")
-            $target = Join-Path $paths.SillyTavern $relative
-            New-Item -ItemType Directory -Force -LiteralPath (Split-Path -Parent $target) | Out-Null
-            Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+    foreach ($item in @("data", "public/user", "config.yaml", "config.conf", "plugins")) {
+        $source = Join-Path $stage $item
+        if (Test-Path -LiteralPath $source) {
+            $target = Join-Path $paths.SillyTavern $item
+            $targetParent = Split-Path -Parent $target
+            New-Item -ItemType Directory -Force -LiteralPath $targetParent | Out-Null
+
+            if (Test-Path -LiteralPath $target) {
+                Remove-JgPathSafely -Path $target
+            }
+
+            Copy-Item -LiteralPath $source -Destination $target -Recurse -Force
         }
+    }
 
     Remove-JgPathSafely -Path $stage
     Write-JgSuccess "已恢复备份：$BackupPath"
@@ -483,14 +578,17 @@ function Update-JgTool {
     }
 
     foreach ($relative in @("bin/jiuguan.ps1", "lib/jiuguan.ps1")) {
-        $uri = "$rawBase/$relative"
         $destination = Join-Path $paths.Tool $relative
         $temp = "$destination.tmp"
         Write-JgInfo "更新工具文件：$relative"
-        Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $temp -ErrorAction Stop
+        $selectedRawBase = Invoke-JgDownloadToolFile -RelativePath $relative -Destination $temp -PreferredRawBase $rawBase
+        if ($selectedRawBase) {
+            $rawBase = $selectedRawBase
+        }
         Move-Item -LiteralPath $temp -Destination $destination -Force
     }
 
+    Set-Content -LiteralPath $paths.RawBaseFile -Value $rawBase -Encoding UTF8
     Write-JgSuccess "工具自身更新完成。"
 }
 
@@ -501,7 +599,7 @@ function Update-JgDeployment {
 
     Update-JgTool
     $wasRunning = [bool](Get-JgRunningProcess)
-    New-JgBackup | Out-Null
+    New-JgBackup
 
     if ($wasRunning) {
         Stop-JgSillyTavern
@@ -583,7 +681,7 @@ function Show-JgDataMenu {
 
         try {
             switch ($choice) {
-                "1" { New-JgBackup | Out-Null }
+                "1" { New-JgBackup }
                 "2" { Restore-JgBackup }
                 "0" { return }
                 default { Write-JgWarn "请输入 0 到 2 之间的数字。" }
@@ -709,5 +807,3 @@ function Show-JgHelp {
   JIUGUAN_SILLYTAVERN_REPO     自定义 SillyTavern Git 仓库或镜像
 "@
 }
-
-

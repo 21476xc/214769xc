@@ -36,7 +36,7 @@ try {
 
             Show-JgLogs -Lines $lines
         }
-        "backup" { New-JgBackup | Out-Null }
+        "backup" { New-JgBackup }
         "restore" {
             $backupPath = if ($Rest.Count -gt 0) { $Rest[0] } else { $null }
             Restore-JgBackup -BackupPath $backupPath
