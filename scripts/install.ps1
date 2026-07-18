@@ -12,13 +12,13 @@ if (-not $InstallRoot) {
 }
 
 if (-not $RawBaseUrl) {
-    $RawBaseUrl = "https://raw.githubusercontent.com/21476xc/214769xc/main"
+    $RawBaseUrl = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
 }
 
-$script:DefaultRawBaseUrl = "https://raw.githubusercontent.com/21476xc/214769xc/main"
+$script:DefaultRawBaseUrl = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
 $script:RawBaseFallbackUrls = @(
-    "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main",
-    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"
+    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main",
+    "https://raw.githubusercontent.com/21476xc/214769xc/main"
 )
 $script:SelectedRawBaseUrl = $RawBaseUrl
 
@@ -76,14 +76,23 @@ function Copy-OrDownloadToolFile {
     foreach ($base in @(Get-InstallRawBaseCandidates -Preferred $RawBaseUrl)) {
         $uri = "$base/$RelativePath"
         Write-InstallInfo "下载 $uri"
-        try {
-            Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -ErrorAction Stop
-            $script:SelectedRawBaseUrl = $base
-            return
+        foreach ($attempt in 1..2) {
+            try {
+                Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -TimeoutSec 30 -ErrorAction Stop
+                if ((Get-Item -LiteralPath $Destination).Length -le 0) {
+                    throw "下载结果为空"
+                }
+
+                $script:SelectedRawBaseUrl = $base
+                return
+            }
+            catch {
+                Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
+                Write-InstallWarn "下载失败（第 $attempt/2 次）：$($_.Exception.Message)"
+            }
         }
-        catch {
-            Write-InstallWarn "下载失败，尝试备用源。"
-        }
+
+        Write-InstallWarn "切换备用源。"
     }
 
     throw "下载 $RelativePath 失败。请检查网络后重试。"

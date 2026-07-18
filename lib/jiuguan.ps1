@@ -1,11 +1,15 @@
-﻿$script:JiuguanVersion = "0.1.0"
+﻿$script:JiuguanVersion = "0.2.0"
 $script:SillyTavernRepoDefault = "https://github.com/SillyTavern/SillyTavern.git"
+$script:SillyTavernBranchDefault = "release"
+$script:SillyTavernVerifiedMirrors = @(
+    "https://ghfast.top/https://github.com/SillyTavern/SillyTavern.git"
+)
 $script:NpmOfficialRegistry = "https://registry.npmjs.org/"
 $script:NpmMirrorRegistry = "https://registry.npmmirror.com"
-$script:ToolRawBaseDefault = "https://raw.githubusercontent.com/21476xc/214769xc/main"
+$script:ToolRawBaseDefault = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
 $script:ToolRawBaseFallbacks = @(
-    "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main",
-    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"
+    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main",
+    "https://raw.githubusercontent.com/21476xc/214769xc/main"
 )
 
 function Write-JgInfo {
@@ -217,13 +221,22 @@ function Invoke-JgDownloadToolFile {
     foreach ($base in @(Get-JgRawBaseCandidates -Preferred $PreferredRawBase)) {
         $uri = "$base/$RelativePath"
         Write-JgInfo "下载 $uri"
-        try {
-            Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -ErrorAction Stop
-            return $base
+        foreach ($attempt in 1..2) {
+            try {
+                Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -TimeoutSec 30 -ErrorAction Stop
+                if ((Get-Item -LiteralPath $Destination).Length -le 0) {
+                    throw "下载结果为空"
+                }
+
+                return $base
+            }
+            catch {
+                Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
+                Write-JgWarn "下载失败（第 $attempt/2 次）：$($_.Exception.Message)"
+            }
         }
-        catch {
-            Write-JgWarn "下载失败，尝试备用源。"
-        }
+
+        Write-JgWarn "切换备用源。"
     }
 
     throw "下载 $RelativePath 失败。请检查网络后重试。"
@@ -235,23 +248,144 @@ function Get-JgNpmRegistryArgs {
         return @("--registry", $env:JIUGUAN_NPM_REGISTRY)
     }
 
-    & npm ping --registry $script:NpmOfficialRegistry | Out-Null
+    Write-JgInfo "检测较快的 npm 下载源。"
+    & npm ping --registry $script:NpmMirrorRegistry --fetch-retries=1 --fetch-timeout=8000 *> $null
+    if ($LASTEXITCODE -eq 0) {
+        Write-JgInfo "使用 npmmirror 安装 npm 依赖。"
+        return @("--registry", $script:NpmMirrorRegistry)
+    }
+
+    Write-JgWarn "npmmirror 暂时不可用，改用 npm 官方源。"
+    & npm ping --registry $script:NpmOfficialRegistry --fetch-retries=1 --fetch-timeout=8000 *> $null
     if ($LASTEXITCODE -eq 0) {
         return @()
     }
 
-    Write-JgWarn "npm 官方源暂时不可用，改用 npmmirror。"
-    return @("--registry", $script:NpmMirrorRegistry)
+    throw "npmmirror 和 npm 官方源都无法访问。请检查网络或代理后重试：jiuguan install"
+}
+
+function Get-JgRemoteBranchCommit {
+    param(
+        [Parameter(Mandatory = $true)][string]$Repo,
+        [Parameter(Mandatory = $true)][string]$Branch
+    )
+
+    $output = (& git -c http.version=HTTP/1.1 -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=15 ls-remote $Repo "refs/heads/$Branch" 2>$null)
+    if ($LASTEXITCODE -ne 0 -or -not $output) {
+        return $null
+    }
+
+    $line = @($output | Select-Object -First 1)[0]
+    if ($line -match '^([0-9a-fA-F]{40})\s') {
+        return $Matches[1].ToLowerInvariant()
+    }
+
+    return $null
 }
 
 function Get-JgSillyTavernRepoCandidates {
-    $repos = @()
-    if ($env:JIUGUAN_SILLYTAVERN_REPO) {
-        $repos += $env:JIUGUAN_SILLYTAVERN_REPO
+    $customRepo = $env:JIUGUAN_SILLYTAVERN_REPO
+    $customBranch = $env:JIUGUAN_SILLYTAVERN_BRANCH
+    if ($customRepo) {
+        [pscustomobject]@{
+            Url = $customRepo
+            Branch = $customBranch
+            ExpectedCommit = $null
+            Attempts = 2
+            Label = "自定义源"
+        }
     }
 
-    $repos += $script:SillyTavernRepoDefault
-    return $repos | Select-Object -Unique
+    $officialCommit = Get-JgRemoteBranchCommit -Repo $script:SillyTavernRepoDefault -Branch $script:SillyTavernBranchDefault
+    if ($officialCommit) {
+        foreach ($mirror in $script:SillyTavernVerifiedMirrors) {
+            $mirrorCommit = Get-JgRemoteBranchCommit -Repo $mirror -Branch $script:SillyTavernBranchDefault
+            if ($mirrorCommit -and $mirrorCommit -eq $officialCommit) {
+                Write-JgSuccess "加速源已通过官方提交校验：$($officialCommit.Substring(0, 8))"
+                [pscustomobject]@{
+                    Url = $mirror
+                    CanonicalUrl = $script:SillyTavernRepoDefault
+                    Branch = $script:SillyTavernBranchDefault
+                    ExpectedCommit = $officialCommit
+                    Attempts = 2
+                    Label = "已校验加速源"
+                }
+            }
+            elseif ($mirrorCommit) {
+                Write-JgWarn "加速源版本与官方不一致，已跳过：$mirror"
+            }
+        }
+    }
+    else {
+        Write-JgWarn "无法取得官方提交哈希，本次不使用第三方加速源。"
+    }
+
+    if (-not $customRepo -or $customRepo -ne $script:SillyTavernRepoDefault) {
+        [pscustomobject]@{
+            Url = $script:SillyTavernRepoDefault
+            CanonicalUrl = $script:SillyTavernRepoDefault
+            Branch = $script:SillyTavernBranchDefault
+            ExpectedCommit = $officialCommit
+            Attempts = 1
+            Label = "官方源"
+        }
+    }
+}
+
+function Invoke-JgSillyTavernClone {
+    param(
+        [Parameter(Mandatory = $true)]$Candidate,
+        [Parameter(Mandatory = $true)][string]$Destination
+    )
+
+    for ($attempt = 1; $attempt -le $Candidate.Attempts; $attempt++) {
+        if (Test-Path -LiteralPath $Destination) {
+            Remove-JgPathSafely -Path $Destination
+        }
+
+        Write-JgInfo "使用$($Candidate.Label)拉取（第 $attempt/$($Candidate.Attempts) 次）：$($Candidate.Url)"
+        $arguments = @(
+            "-c", "http.version=HTTP/1.1",
+            "-c", "http.lowSpeedLimit=1024",
+            "-c", "http.lowSpeedTime=45",
+            "clone", "--depth", "1", "--single-branch"
+        )
+        if ($Candidate.Branch) {
+            $arguments += @("--branch", $Candidate.Branch)
+        }
+        $arguments += @($Candidate.Url, $Destination)
+
+        & git @arguments 2>&1 | ForEach-Object { Write-Host $_ }
+        $packageJson = Join-Path $Destination "package.json"
+        if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $packageJson)) {
+            if ($Candidate.ExpectedCommit) {
+                $actualCommit = (& git -C $Destination rev-parse HEAD 2>$null).Trim()
+                if ($actualCommit -ne $Candidate.ExpectedCommit) {
+                    Write-JgWarn "下载结果未通过提交校验，已删除并切换来源。"
+                    Remove-JgPathSafely -Path $Destination
+                    return $false
+                }
+            }
+
+            if ($Candidate.CanonicalUrl -and $Candidate.CanonicalUrl -ne $Candidate.Url) {
+                & git -C $Destination remote set-url origin $Candidate.CanonicalUrl
+                if ($LASTEXITCODE -ne 0) {
+                    Write-JgWarn "无法把长期更新地址切回官方仓库，将改用下一个来源。"
+                    Remove-JgPathSafely -Path $Destination
+                    return $false
+                }
+            }
+
+            return $true
+        }
+
+        Write-JgWarn "拉取中断，将自动清理临时目录后重试。"
+    }
+
+    if (Test-Path -LiteralPath $Destination) {
+        Remove-JgPathSafely -Path $Destination
+    }
+    return $false
 }
 
 function Assert-JgSillyTavernInstalled {
@@ -285,26 +419,30 @@ function Install-JgDeployment {
         Write-JgWarn "当前访问 GitHub 可能不稳定。如果克隆失败，可以设置代理或指定镜像：`$env:JIUGUAN_SILLYTAVERN_REPO='你的镜像仓库地址'"
     }
 
+    $packageJson = Join-Path $paths.SillyTavern "package.json"
+    $gitDir = Join-Path $paths.SillyTavern ".git"
+    if ((Test-Path -LiteralPath $gitDir) -and -not (Test-Path -LiteralPath $packageJson)) {
+        Write-JgWarn "发现上次下载中断留下的不完整目录，正在自动清理。"
+        Remove-JgPathSafely -Path $paths.SillyTavern
+    }
+
     if (-not (Test-Path -LiteralPath $paths.SillyTavern)) {
         New-Item -ItemType Directory -Force -Path $paths.Root | Out-Null
         $cloned = $false
+        $downloadPath = "$($paths.SillyTavern).download"
 
-        foreach ($repo in @(Get-JgSillyTavernRepoCandidates)) {
-            Write-JgInfo "拉取 SillyTavern：$repo"
-            & git clone --depth 1 $repo $paths.SillyTavern
-            if ($LASTEXITCODE -eq 0) {
+        foreach ($candidate in @(Get-JgSillyTavernRepoCandidates)) {
+            if (Invoke-JgSillyTavernClone -Candidate $candidate -Destination $downloadPath) {
+                Move-Item -LiteralPath $downloadPath -Destination $paths.SillyTavern
                 $cloned = $true
                 break
             }
 
             Write-JgWarn "这个来源拉取失败，尝试下一个来源。"
-            if (Test-Path -LiteralPath $paths.SillyTavern) {
-                Remove-JgPathSafely -Path $paths.SillyTavern
-            }
         }
 
         if (-not $cloned) {
-            throw "SillyTavern 拉取失败。请检查网络，或设置 `$env:JIUGUAN_SILLYTAVERN_REPO 后重试：jiuguan install"
+            throw "SillyTavern 自动重试后仍拉取失败。请切换网络，或设置 `$env:JIUGUAN_SILLYTAVERN_REPO 后重试：jiuguan install"
         }
     }
     elseif (-not (Test-Path -LiteralPath (Join-Path $paths.SillyTavern ".git"))) {

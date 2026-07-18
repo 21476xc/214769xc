@@ -109,6 +109,28 @@ else {
     Write-Ok "install.ps1 preserves downloaded script bytes"
 }
 
+$windowsLibrary = [System.IO.File]::ReadAllText((Join-Path $repoRoot "lib\jiuguan.ps1"), [System.Text.Encoding]::UTF8)
+if ($windowsLibrary -notmatch 'ExpectedCommit' -or
+    $windowsLibrary -notmatch 'SillyTavern\)\.download' -or
+    $windowsLibrary -notmatch '上次下载中断') {
+    Write-Fail "Windows installer must verify mirrors and recover interrupted clones"
+    $failed = $true
+}
+else {
+    Write-Ok "Windows verified mirror and interrupted clone recovery"
+}
+
+$bashLibrary = [System.IO.File]::ReadAllText((Join-Path $repoRoot "lib\jiuguan.sh"), [System.Text.Encoding]::UTF8)
+if ($bashLibrary -notmatch 'official_commit' -or
+    $bashLibrary -notmatch '\$\{JG_ST\}\.download' -or
+    $bashLibrary -notmatch '上次下载中断') {
+    Write-Fail "Bash installer must verify mirrors and recover interrupted clones"
+    $failed = $true
+}
+else {
+    Write-Ok "Bash verified mirror and interrupted clone recovery"
+}
+
 $unsupportedNewItemLiteralPath = Select-String -Path $psFiles.ForEach({ Join-Path $repoRoot $_ }) -Pattern '\bNew-Item\b.*-LiteralPath'
 if ($unsupportedNewItemLiteralPath) {
     Write-Fail "New-Item -LiteralPath is not supported by Windows PowerShell 5.1"

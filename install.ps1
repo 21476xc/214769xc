@@ -7,10 +7,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$defaultRawBaseUrl = "https://raw.githubusercontent.com/21476xc/214769xc/main"
+$defaultRawBaseUrl = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
 $rawBaseFallbackUrls = @(
-    "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main",
-    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"
+    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main",
+    "https://raw.githubusercontent.com/21476xc/214769xc/main"
 )
 
 if (-not $RawBaseUrl) {
@@ -43,7 +43,7 @@ function Save-RemoteInstaller {
         $uri = "$base/$RelativePath"
         Write-Host "[信息] 下载 $uri"
         try {
-            Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -ErrorAction Stop
+            Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -TimeoutSec 30 -ErrorAction Stop
             $script:RawBaseUrl = $base
             return
         }

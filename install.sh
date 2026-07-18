@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-DEFAULT_RAW_BASE_URL="https://raw.githubusercontent.com/21476xc/214769xc/main"
+DEFAULT_RAW_BASE_URL="https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
 RAW_BASE_URL="${JIUGUAN_RAW_BASE_URL:-$DEFAULT_RAW_BASE_URL}"
 RAW_BASE_FALLBACK_URLS=(
-    "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
     "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"
+    "https://raw.githubusercontent.com/21476xc/214769xc/main"
 )
 SCRIPT_PATH="${BASH_SOURCE[0]:-}"
 
@@ -39,14 +39,14 @@ download_file() {
         url="$base/$relative"
         printf '[信息] 下载 %s\n' "$url"
         if command -v curl >/dev/null 2>&1; then
-            if curl --fail --location --show-error --retry 3 --connect-timeout 15 "$url" -o "$destination"; then
+            if curl --fail --location --show-error --retry 2 --connect-timeout 10 --max-time 45 "$url" -o "$destination"; then
                 RAW_BASE_URL="$base"
                 return 0
             fi
         fi
 
         if command -v wget >/dev/null 2>&1; then
-            if wget -qO "$destination" "$url"; then
+            if wget -qO "$destination" --timeout=15 --tries=2 "$url"; then
                 RAW_BASE_URL="$base"
                 return 0
             fi

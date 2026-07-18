@@ -32,6 +32,12 @@ pkg i -y wget && wget -qO- https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/ins
 
 Termux 短命令会先用 `wget` 下载安装脚本，脚本内部再自动完整升级 Termux 基础包，避免只更新 `curl` 导致底层库不匹配。
 
+### 下载优化
+
+安装器会优先使用较快的 CDN 下载管理工具，并自动选择 `npmmirror` 安装 npm 依赖。拉取 SillyTavern 时，会先对比官方仓库与加速源的 `release` 提交哈希；只有完全一致才使用加速源，下载完成后会把长期更新地址切回官方仓库。
+
+如果网络中途断开，安装器会自动重试并清理不完整的临时目录。再次运行同一条一键命令即可继续，不需要手动删除 `SillyTavern` 文件夹。
+
 ## 安装完成后
 
 安装成功后会自动启动 SillyTavern，并显示访问地址。
@@ -209,10 +215,17 @@ $env:JIUGUAN_HOME = "D:\SillyTavernBox"
 $p="$env:TEMP\214769-install.ps1"; iwr https://cdn.jsdelivr.net/gh/21476xc/214769xc@2a769b4/scripts/install.ps1 -UseBasicParsing -OutFile $p -ErrorAction Stop; powershell -NoProfile -ExecutionPolicy Bypass -File $p
 ```
 
-指定 SillyTavern 镜像仓库：
+一般不需要手动设置镜像。确实需要指定自定义 SillyTavern 仓库时：
 
 ```bash
 JIUGUAN_SILLYTAVERN_REPO="https://github.com/SillyTavern/SillyTavern.git" jiuguan install
+```
+
+Windows PowerShell：
+
+```powershell
+$env:JIUGUAN_SILLYTAVERN_REPO = "你的镜像仓库地址"
+jiuguan install
 ```
 
 指定 npm 镜像源：

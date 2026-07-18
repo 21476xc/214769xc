@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-DEFAULT_RAW_BASE_URL="https://raw.githubusercontent.com/21476xc/214769xc/main"
+DEFAULT_RAW_BASE_URL="https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
 RAW_BASE_URL="${JIUGUAN_RAW_BASE_URL:-}"
 INSTALL_ROOT="${JIUGUAN_HOME:-$HOME/214769SillyTavern}"
 SKIP_INSTALL=0
 RAW_BASE_FALLBACK_URLS=(
-    "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
     "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"
+    "https://raw.githubusercontent.com/21476xc/214769xc/main"
 )
 
 while [[ $# -gt 0 ]]; do
@@ -62,14 +62,14 @@ download_file() {
         url="$base/$relative"
         install_info "下载 $url"
         if command -v curl >/dev/null 2>&1; then
-            if curl --fail --location --show-error --retry 3 --connect-timeout 15 "$url" -o "$destination"; then
+            if curl --fail --location --show-error --retry 2 --connect-timeout 10 --max-time 45 "$url" -o "$destination"; then
                 RAW_BASE_URL="$base"
                 return 0
             fi
         fi
 
         if command -v wget >/dev/null 2>&1; then
-            if wget -qO "$destination" "$url"; then
+            if wget -qO "$destination" --timeout=15 --tries=2 "$url"; then
                 RAW_BASE_URL="$base"
                 return 0
             fi

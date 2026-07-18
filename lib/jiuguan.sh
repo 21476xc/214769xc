@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
-JIUGUAN_VERSION="0.1.0"
+JIUGUAN_VERSION="0.2.0"
 JG_ST_REPO_DEFAULT="https://github.com/SillyTavern/SillyTavern.git"
+JG_ST_BRANCH_DEFAULT="release"
+JG_ST_VERIFIED_MIRRORS=(
+    "https://ghfast.top/https://github.com/SillyTavern/SillyTavern.git"
+)
 JG_NPM_OFFICIAL_REGISTRY="https://registry.npmjs.org/"
 JG_NPM_MIRROR_REGISTRY="https://registry.npmmirror.com"
 JG_NPM_REGISTRY_ARGS=()
@@ -282,19 +286,89 @@ jg_set_npm_registry_args() {
         return
     fi
 
-    if npm ping --registry "$JG_NPM_OFFICIAL_REGISTRY" >/dev/null 2>&1; then
+    jg_info "检测较快的 npm 下载源。"
+    if npm ping --registry "$JG_NPM_MIRROR_REGISTRY" --fetch-retries=1 --fetch-timeout=8000 >/dev/null 2>&1; then
+        jg_info "使用 npmmirror 安装 npm 依赖。"
+        JG_NPM_REGISTRY_ARGS=(--registry "$JG_NPM_MIRROR_REGISTRY")
         return
     fi
 
-    jg_warn "npm 官方源暂时不可用，改用 npmmirror。"
-    JG_NPM_REGISTRY_ARGS=(--registry "$JG_NPM_MIRROR_REGISTRY")
+    jg_warn "npmmirror 暂时不可用，改用 npm 官方源。"
+    npm ping --registry "$JG_NPM_OFFICIAL_REGISTRY" --fetch-retries=1 --fetch-timeout=8000 >/dev/null 2>&1 ||
+        jg_die "npmmirror 和 npm 官方源都无法访问。请检查网络或代理后重试：jiuguan install"
+}
+
+jg_remote_branch_commit() {
+    local repo="$1"
+    local branch="$2"
+    local output
+    output="$(git -c http.version=HTTP/1.1 -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=15 \
+        ls-remote "$repo" "refs/heads/$branch" 2>/dev/null)" || return 1
+    printf '%s\n' "$output" | awk 'NR == 1 && $1 ~ /^[0-9a-fA-F]{40}$/ { print tolower($1) }'
 }
 
 jg_repo_candidates() {
-    if [[ -n "${JIUGUAN_SILLYTAVERN_REPO:-}" ]]; then
-        printf '%s\n' "$JIUGUAN_SILLYTAVERN_REPO"
+    local custom_repo="${JIUGUAN_SILLYTAVERN_REPO:-}"
+    local custom_branch="${JIUGUAN_SILLYTAVERN_BRANCH:-}"
+    local official_commit="" mirror mirror_commit
+
+    if [[ -n "$custom_repo" ]]; then
+        printf '%s|%s||2|自定义源\n' "$custom_repo" "$custom_branch"
     fi
-    printf '%s\n' "$JG_ST_REPO_DEFAULT"
+
+    official_commit="$(jg_remote_branch_commit "$JG_ST_REPO_DEFAULT" "$JG_ST_BRANCH_DEFAULT" || true)"
+    if [[ -n "$official_commit" ]]; then
+        for mirror in "${JG_ST_VERIFIED_MIRRORS[@]}"; do
+            mirror_commit="$(jg_remote_branch_commit "$mirror" "$JG_ST_BRANCH_DEFAULT" || true)"
+            if [[ -n "$mirror_commit" && "$mirror_commit" == "$official_commit" ]]; then
+                jg_success "加速源已通过官方提交校验：${official_commit:0:8}" >&2
+                printf '%s|%s|%s|2|已校验加速源\n' "$mirror" "$JG_ST_BRANCH_DEFAULT" "$official_commit"
+            elif [[ -n "$mirror_commit" ]]; then
+                jg_warn "加速源版本与官方不一致，已跳过：$mirror" >&2
+            fi
+        done
+    else
+        jg_warn "无法取得官方提交哈希，本次不使用第三方加速源。" >&2
+    fi
+
+    if [[ -z "$custom_repo" || "$custom_repo" != "$JG_ST_REPO_DEFAULT" ]]; then
+        printf '%s|%s|%s|1|官方源\n' "$JG_ST_REPO_DEFAULT" "$JG_ST_BRANCH_DEFAULT" "$official_commit"
+    fi
+}
+
+jg_clone_sillytavern() {
+    local repo="$1" branch="$2" expected="$3" attempts="$4" label="$5" destination="$6"
+    local attempt actual
+    local git_args=(-c http.version=HTTP/1.1 -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=45 \
+        clone --depth 1 --single-branch)
+    [[ -n "$branch" ]] && git_args+=(--branch "$branch")
+
+    for ((attempt = 1; attempt <= attempts; attempt++)); do
+        [[ -e "$destination" ]] && jg_safe_rm_rf "$destination"
+        jg_info "使用${label}拉取（第 $attempt/$attempts 次）：$repo"
+        if git "${git_args[@]}" "$repo" "$destination" && [[ -f "$destination/package.json" ]]; then
+            if [[ -n "$expected" ]]; then
+                actual="$(git -C "$destination" rev-parse HEAD 2>/dev/null || true)"
+                if [[ "$actual" != "$expected" ]]; then
+                    jg_warn "下载结果未通过提交校验，已删除并切换来源。"
+                    jg_safe_rm_rf "$destination"
+                    return 1
+                fi
+                if [[ "$repo" != "$JG_ST_REPO_DEFAULT" ]]; then
+                    git -C "$destination" remote set-url origin "$JG_ST_REPO_DEFAULT" || {
+                        jg_warn "无法把长期更新地址切回官方仓库，将改用下一个来源。"
+                        jg_safe_rm_rf "$destination"
+                        return 1
+                    }
+                fi
+            fi
+            return 0
+        fi
+        jg_warn "拉取中断，将自动清理临时目录后重试。"
+    done
+
+    [[ -e "$destination" ]] && jg_safe_rm_rf "$destination"
+    return 1
 }
 
 jg_assert_sillytavern_installed() {
@@ -317,20 +391,25 @@ jg_install() {
         jg_warn "当前访问 GitHub 可能不稳定。如果克隆失败，可以设置 JIUGUAN_SILLYTAVERN_REPO 为镜像仓库后重试。"
     fi
 
+    if [[ -d "$JG_ST/.git" && ! -f "$JG_ST/package.json" ]]; then
+        jg_warn "发现上次下载中断留下的不完整目录，正在自动清理。"
+        jg_safe_rm_rf "$JG_ST"
+    fi
+
     if [[ ! -e "$JG_ST" ]]; then
-        local cloned=0 repo
-        while IFS= read -r repo; do
+        local cloned=0 repo branch expected attempts label
+        local download_path="${JG_ST}.download"
+        while IFS='|' read -r repo branch expected attempts label; do
             [[ -n "$repo" ]] || continue
-            jg_info "拉取 SillyTavern：$repo"
-            if git clone --depth 1 "$repo" "$JG_ST"; then
+            if jg_clone_sillytavern "$repo" "$branch" "$expected" "$attempts" "$label" "$download_path"; then
+                mv "$download_path" "$JG_ST"
                 cloned=1
                 break
             fi
             jg_warn "这个来源拉取失败，尝试下一个来源。"
-            rm -rf -- "$JG_ST"
         done < <(jg_repo_candidates)
 
-        [[ "$cloned" -eq 1 ]] || jg_die "SillyTavern 拉取失败。请检查网络，或设置 JIUGUAN_SILLYTAVERN_REPO 后重试：jiuguan install"
+        [[ "$cloned" -eq 1 ]] || jg_die "SillyTavern 自动重试后仍拉取失败。请切换网络，或设置 JIUGUAN_SILLYTAVERN_REPO 后重试：jiuguan install"
     elif [[ ! -d "$JG_ST/.git" ]]; then
         jg_die "发现 $JG_ST，但它不是 Git 仓库。为避免覆盖你的文件，请先移动该目录后重试。"
     else
@@ -550,9 +629,9 @@ jg_restore() {
 
 jg_raw_base_candidates() {
     local preferred="${1:-}"
-    local default_base="https://raw.githubusercontent.com/21476xc/214769xc/main"
+    local default_base="https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
     local emitted=" " base
-    for base in "$preferred" "$default_base" "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main" "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"; do
+    for base in "$preferred" "$default_base" "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main" "https://raw.githubusercontent.com/21476xc/214769xc/main"; do
         [[ -n "$base" ]] || continue
         case "$emitted" in
             *" $base "*) continue ;;
@@ -573,12 +652,12 @@ jg_download_tool_file() {
         [[ -n "$base" ]] || continue
         url="$base/$relative"
         jg_info "下载 $url"
-        if jg_command_exists curl && curl --fail --location --show-error --retry 3 --connect-timeout 15 "$url" -o "$destination"; then
+        if jg_command_exists curl && curl --fail --location --show-error --retry 2 --connect-timeout 10 --max-time 45 "$url" -o "$destination"; then
             JG_SELECTED_RAW_BASE="$base"
             return 0
         fi
 
-        if jg_command_exists wget && wget -qO "$destination" "$url"; then
+        if jg_command_exists wget && wget -qO "$destination" --timeout=15 --tries=2 "$url"; then
             JG_SELECTED_RAW_BASE="$base"
             return 0
         fi
