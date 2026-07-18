@@ -7,9 +7,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$defaultRawBaseUrl = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
+$defaultRawBaseUrl = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@v0.2.0"
 $rawBaseFallbackUrls = @(
-    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main",
+    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@v0.2.0",
     "https://raw.githubusercontent.com/21476xc/214769xc/main"
 )
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-DEFAULT_RAW_BASE_URL="https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
+DEFAULT_RAW_BASE_URL="https://cdn.jsdelivr.net/gh/21476xc/214769xc@v0.2.0"
 RAW_BASE_URL="${JIUGUAN_RAW_BASE_URL:-$DEFAULT_RAW_BASE_URL}"
 RAW_BASE_FALLBACK_URLS=(
-    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main"
+    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@v0.2.0"
     "https://raw.githubusercontent.com/21476xc/214769xc/main"
 )
 SCRIPT_PATH="${BASH_SOURCE[0]:-}"

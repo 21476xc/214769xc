@@ -12,12 +12,12 @@ if (-not $InstallRoot) {
 }
 
 if (-not $RawBaseUrl) {
-    $RawBaseUrl = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
+    $RawBaseUrl = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@v0.2.0"
 }
 
-$script:DefaultRawBaseUrl = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
+$script:DefaultRawBaseUrl = "https://cdn.jsdelivr.net/gh/21476xc/214769xc@v0.2.0"
 $script:RawBaseFallbackUrls = @(
-    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@main",
+    "https://fastly.jsdelivr.net/gh/21476xc/214769xc@v0.2.0",
     "https://raw.githubusercontent.com/21476xc/214769xc/main"
 )
 $script:SelectedRawBaseUrl = $RawBaseUrl

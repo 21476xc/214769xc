@@ -710,6 +710,11 @@ function Update-JgTool {
         $rawBase = (Get-Content -LiteralPath $paths.RawBaseFile -Raw).Trim()
     }
 
+    if ($rawBase -match '^https://(?:cdn|fastly)\.jsdelivr\.net/gh/21476xc/214769xc@v[0-9]') {
+        Write-JgInfo "从稳定安装版本切换到最新工具源。"
+        $rawBase = $script:ToolRawBaseDefault
+    }
+
     if (-not $rawBase) {
         Write-JgInfo "没有配置远程工具地址，跳过工具自身更新。"
         return

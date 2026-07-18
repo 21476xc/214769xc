@@ -675,6 +675,13 @@ jg_update_tool() {
         raw_base="$(tr -d '\r\n' < "$JG_RAW_BASE_FILE")"
     fi
 
+    case "$raw_base" in
+        https://cdn.jsdelivr.net/gh/21476xc/214769xc@v*|https://fastly.jsdelivr.net/gh/21476xc/214769xc@v*)
+            jg_info "从稳定安装版本切换到最新工具源。"
+            raw_base="https://cdn.jsdelivr.net/gh/21476xc/214769xc@main"
+            ;;
+    esac
+
     if [[ -z "$raw_base" ]]; then
         jg_info "没有配置远程工具地址，跳过工具自身更新。"
         return

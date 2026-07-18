@@ -117,6 +117,18 @@ else {
     Write-Ok "install.ps1 preserves downloaded script bytes"
 }
 
+$bootstrapFiles = @("install.ps1", "scripts\install.ps1", "install.sh", "scripts\install.sh")
+foreach ($bootstrapFile in $bootstrapFiles) {
+    $bootstrapText = [System.IO.File]::ReadAllText((Join-Path $repoRoot $bootstrapFile), [System.Text.Encoding]::UTF8)
+    if ($bootstrapText -notmatch '214769xc@v0\.2\.0') {
+        Write-Fail "$bootstrapFile must download a stable release"
+        $failed = $true
+    }
+    else {
+        Write-Ok "$bootstrapFile stable release source"
+    }
+}
+
 $windowsLibrary = [System.IO.File]::ReadAllText((Join-Path $repoRoot "lib\jiuguan.ps1"), [System.Text.Encoding]::UTF8)
 if ($windowsLibrary -notmatch 'ExpectedCommit' -or
     $windowsLibrary -notmatch 'SillyTavern\)\.download' -or
