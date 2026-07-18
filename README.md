@@ -11,7 +11,7 @@
 打开 PowerShell，复制运行：
 
 ```powershell
-irm https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.ps1 | iex
+$p="$env:TEMP\214769-install.ps1"; iwr https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/scripts/install.ps1 -UseBasicParsing -OutFile $p -ErrorAction Stop; powershell -NoProfile -ExecutionPolicy Bypass -File $p
 ```
 
 ### macOS / Linux
@@ -206,7 +206,7 @@ Windows PowerShell：
 
 ```powershell
 $env:JIUGUAN_HOME = "D:\SillyTavernBox"
-irm https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.ps1 | iex
+$p="$env:TEMP\214769-install.ps1"; iwr https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/scripts/install.ps1 -UseBasicParsing -OutFile $p -ErrorAction Stop; powershell -NoProfile -ExecutionPolicy Bypass -File $p
 ```
 
 指定 SillyTavern 镜像仓库：

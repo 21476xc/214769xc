@@ -33,16 +33,19 @@ function Get-RawBaseCandidates {
     }
 }
 
-function Get-RemoteInstallerContent {
-    param([string]$RelativePath)
+function Save-RemoteInstaller {
+    param(
+        [string]$RelativePath,
+        [string]$Destination
+    )
 
     foreach ($base in @(Get-RawBaseCandidates -Preferred $RawBaseUrl)) {
         $uri = "$base/$RelativePath"
         Write-Host "[信息] 下载 $uri"
         try {
-            $response = Invoke-WebRequest -Uri $uri -UseBasicParsing -ErrorAction Stop
+            Invoke-WebRequest -Uri $uri -UseBasicParsing -OutFile $Destination -ErrorAction Stop
             $script:RawBaseUrl = $base
-            return $response.Content
+            return
         }
         catch {
             Write-Host "[提醒] 下载失败，尝试备用源。"
@@ -60,8 +63,7 @@ if ($PSScriptRoot) {
     }
 }
 
-$script = Get-RemoteInstallerContent -RelativePath "scripts/install.ps1"
 $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "jiuguan-install.ps1"
-Set-Content -LiteralPath $tempFile -Value $script -Encoding UTF8
+Save-RemoteInstaller -RelativePath "scripts/install.ps1" -Destination $tempFile
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tempFile -RawBaseUrl $RawBaseUrl -InstallRoot $InstallRoot -SkipInstall:$SkipInstall
 exit $LASTEXITCODE

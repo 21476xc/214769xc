@@ -94,8 +94,8 @@ $toolRoot = Join-Path $InstallRoot ".jiuguan-tool"
 $binDir = Join-Path $toolRoot "bin"
 $libDir = Join-Path $toolRoot "lib"
 
-New-Item -ItemType Directory -Force -LiteralPath $binDir | Out-Null
-New-Item -ItemType Directory -Force -LiteralPath $libDir | Out-Null
+New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+New-Item -ItemType Directory -Force -Path $libDir | Out-Null
 
 Copy-OrDownloadToolFile -RelativePath "bin/jiuguan.ps1" -Destination (Join-Path $binDir "jiuguan.ps1") -RawBaseUrl $script:SelectedRawBaseUrl
 Copy-OrDownloadToolFile -RelativePath "lib/jiuguan.ps1" -Destination (Join-Path $libDir "jiuguan.ps1") -RawBaseUrl $script:SelectedRawBaseUrl

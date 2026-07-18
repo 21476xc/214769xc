@@ -82,6 +82,35 @@ foreach ($file in $psFiles) {
     }
 }
 
+$readmePath = Join-Path $repoRoot "README.md"
+$readme = [System.IO.File]::ReadAllText($readmePath, [System.Text.Encoding]::UTF8)
+if ($readme -match 'irm\s+https://cdn\.jsdelivr\.net/.+\|\s*iex') {
+    Write-Fail "README Windows installer must not pipe jsDelivr content into iex"
+    $failed = $true
+}
+else {
+    Write-Ok "README Windows installer downloads to a file"
+}
+
+$rootInstaller = [System.IO.File]::ReadAllText((Join-Path $repoRoot "install.ps1"), [System.Text.Encoding]::UTF8)
+if ($rootInstaller -notmatch 'Invoke-WebRequest.+-OutFile\s+\$Destination') {
+    Write-Fail "install.ps1 must preserve downloaded script bytes"
+    $failed = $true
+}
+else {
+    Write-Ok "install.ps1 preserves downloaded script bytes"
+}
+
+$unsupportedNewItemLiteralPath = Select-String -Path $psFiles.ForEach({ Join-Path $repoRoot $_ }) -Pattern '\bNew-Item\b.*-LiteralPath'
+if ($unsupportedNewItemLiteralPath) {
+    Write-Fail "New-Item -LiteralPath is not supported by Windows PowerShell 5.1"
+    $unsupportedNewItemLiteralPath | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
+    $failed = $true
+}
+else {
+    Write-Ok "Windows PowerShell 5.1 New-Item parameters"
+}
+
 $helpPath = Join-Path $repoRoot "bin\jiuguan.ps1"
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $helpPath help | Out-Null
 if ($LASTEXITCODE -eq 0) {

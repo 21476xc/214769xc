@@ -62,7 +62,7 @@ function Get-JgPaths {
 function Initialize-JgDirectories {
     $paths = Get-JgPaths
     foreach ($dir in @($paths.Root, $paths.Tool, $paths.Bin, $paths.Lib, $paths.State, $paths.Logs, $paths.Backups)) {
-        New-Item -ItemType Directory -Force -LiteralPath $dir | Out-Null
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
     }
 
     return $paths
@@ -286,7 +286,7 @@ function Install-JgDeployment {
     }
 
     if (-not (Test-Path -LiteralPath $paths.SillyTavern)) {
-        New-Item -ItemType Directory -Force -LiteralPath $paths.Root | Out-Null
+        New-Item -ItemType Directory -Force -Path $paths.Root | Out-Null
         $cloned = $false
 
         foreach ($repo in @(Get-JgSillyTavernRepoCandidates)) {
@@ -496,7 +496,7 @@ function New-JgBackup {
         Remove-JgPathSafely -Path $stage
     }
 
-    New-Item -ItemType Directory -Force -LiteralPath $stage | Out-Null
+    New-Item -ItemType Directory -Force -Path $stage | Out-Null
     Set-Content -LiteralPath (Join-Path $stage "BACKUP_INFO.txt") -Value "jiuguan backup $stamp" -Encoding UTF8
 
     foreach ($item in @("data", "public/user", "config.yaml", "config.conf", "plugins")) {
@@ -504,7 +504,7 @@ function New-JgBackup {
         if (Test-Path -LiteralPath $source) {
             $target = Join-Path $stage $item
             $targetParent = Split-Path -Parent $target
-            New-Item -ItemType Directory -Force -LiteralPath $targetParent | Out-Null
+            New-Item -ItemType Directory -Force -Path $targetParent | Out-Null
             Copy-Item -LiteralPath $source -Destination $target -Recurse -Force
         }
     }
@@ -543,7 +543,7 @@ function Restore-JgBackup {
         Remove-JgPathSafely -Path $stage
     }
 
-    New-Item -ItemType Directory -Force -LiteralPath $stage | Out-Null
+    New-Item -ItemType Directory -Force -Path $stage | Out-Null
     Expand-Archive -LiteralPath $BackupPath -DestinationPath $stage -Force
 
     foreach ($item in @("data", "public/user", "config.yaml", "config.conf", "plugins")) {
@@ -551,7 +551,7 @@ function Restore-JgBackup {
         if (Test-Path -LiteralPath $source) {
             $target = Join-Path $paths.SillyTavern $item
             $targetParent = Split-Path -Parent $target
-            New-Item -ItemType Directory -Force -LiteralPath $targetParent | Out-Null
+            New-Item -ItemType Directory -Force -Path $targetParent | Out-Null
 
             if (Test-Path -LiteralPath $target) {
                 Remove-JgPathSafely -Path $target
