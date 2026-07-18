@@ -11,7 +11,7 @@
 打开 PowerShell，复制运行：
 
 ```powershell
-$p="$env:TEMP\214769-install.ps1"; iwr https://cdn.jsdelivr.net/gh/21476xc/214769xc@2a769b4/scripts/install.ps1 -UseBasicParsing -OutFile $p -ErrorAction Stop; powershell -NoProfile -ExecutionPolicy Bypass -File $p
+$p="$env:TEMP\214769-install.ps1"; iwr https://cdn.jsdelivr.net/gh/21476xc/214769xc@2c20ddc/scripts/install.ps1 -UseBasicParsing -OutFile $p -ErrorAction Stop; powershell -NoProfile -ExecutionPolicy Bypass -File $p
 ```
 
 ### macOS / Linux
@@ -19,7 +19,7 @@ $p="$env:TEMP\214769-install.ps1"; iwr https://cdn.jsdelivr.net/gh/21476xc/21476
 打开终端，复制运行：
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@2c20ddc/install.sh | bash
 ```
 
 ### Android Termux
@@ -27,7 +27,7 @@ curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
 请使用 F-Droid 版 Termux，不建议使用 Play 商店旧版。打开 Termux，复制运行：
 
 ```bash
-pkg i -y wget && wget -qO- https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
+pkg i -y wget && wget -qO- https://cdn.jsdelivr.net/gh/21476xc/214769xc@2c20ddc/install.sh | bash
 ```
 
 Termux 短命令会先用 `wget` 下载安装脚本，脚本内部再自动完整升级 Termux 基础包，避免只更新 `curl` 导致底层库不匹配。
@@ -156,7 +156,7 @@ termux-change-repo
 如果遇到 `curl/wget` 损坏、底层库不匹配，使用这条完整兼容命令：
 
 ```bash
-tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; apt-get update && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl wget ca-certificates && (curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh -o "$tmp" || wget -qO "$tmp" https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh) && bash "$tmp"
+tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; apt-get update && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" curl wget ca-certificates && (curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@2c20ddc/install.sh -o "$tmp" || wget -qO "$tmp" https://cdn.jsdelivr.net/gh/21476xc/214769xc@2c20ddc/install.sh) && bash "$tmp"
 ```
 
 ### macOS/Linux 没有 curl
@@ -164,7 +164,7 @@ tmp="${TMPDIR:-/tmp}/jiuguan-install.sh"; apt-get update && DEBIAN_FRONTEND=noni
 如果系统没有 `curl`，用 `wget`：
 
 ```bash
-wget -qO- https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh | bash
+wget -qO- https://cdn.jsdelivr.net/gh/21476xc/214769xc@2c20ddc/install.sh | bash
 ```
 
 ## 常见问题
@@ -205,14 +205,14 @@ termux-setup-storage
 自定义安装目录：
 
 ```bash
-JIUGUAN_HOME="$HOME/SillyTavernBox" bash <(curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@main/install.sh)
+JIUGUAN_HOME="$HOME/SillyTavernBox" bash <(curl -fsSL https://cdn.jsdelivr.net/gh/21476xc/214769xc@2c20ddc/install.sh)
 ```
 
 Windows PowerShell：
 
 ```powershell
 $env:JIUGUAN_HOME = "D:\SillyTavernBox"
-$p="$env:TEMP\214769-install.ps1"; iwr https://cdn.jsdelivr.net/gh/21476xc/214769xc@2a769b4/scripts/install.ps1 -UseBasicParsing -OutFile $p -ErrorAction Stop; powershell -NoProfile -ExecutionPolicy Bypass -File $p
+$p="$env:TEMP\214769-install.ps1"; iwr https://cdn.jsdelivr.net/gh/21476xc/214769xc@2c20ddc/scripts/install.ps1 -UseBasicParsing -OutFile $p -ErrorAction Stop; powershell -NoProfile -ExecutionPolicy Bypass -File $p
 ```
 
 一般不需要手动设置镜像。确实需要指定自定义 SillyTavern 仓库时：

@@ -100,6 +100,14 @@ else {
     Write-Ok "README Windows installer uses an immutable bootstrap revision"
 }
 
+if ($readme -match 'cdn\.jsdelivr\.net/gh/21476xc/214769xc@main/install\.sh') {
+    Write-Fail "README Bash installers must use an immutable bootstrap revision"
+    $failed = $true
+}
+else {
+    Write-Ok "README Bash installers use an immutable bootstrap revision"
+}
+
 $rootInstaller = [System.IO.File]::ReadAllText((Join-Path $repoRoot "install.ps1"), [System.Text.Encoding]::UTF8)
 if ($rootInstaller -notmatch 'Invoke-WebRequest.+-OutFile\s+\$Destination') {
     Write-Fail "install.ps1 must preserve downloaded script bytes"
